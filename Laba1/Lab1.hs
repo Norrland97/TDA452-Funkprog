@@ -1,7 +1,7 @@
 {- Lab 1
-   Date: 
-   Authors:
-   Lab group:
+   Date: 2020-11-03
+   Authors: Viktor Fredholm, Aline Eikeland
+   Lab group: 25
  -}
 --------------------------------------------
 power :: Integer -> Integer -> Integer
@@ -15,18 +15,21 @@ power n k  = n * power n (k-1)
 -- power n k takes to compute
 
 stepsPower :: Integer -> Integer -> Integer
-stepsPower n k = undefined 
+stepsPower n k = k+1 
 
 
 -- B -------------------------
 -- power1
 
-power2 = undefined
+
+power1 n k | k == 0 = (product nList)
+   where nList = nList + [n]
+            | 
 
 -- C -------------------------
 -- power2
 
-power3 = undefined
+power2 = undefined
 
 -- D -------------------------
 {- 

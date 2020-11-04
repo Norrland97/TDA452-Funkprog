@@ -22,14 +22,24 @@ stepsPower n k = k+1
 -- power1
 
 
-power1 n k | k == 0 = (product nList)
-   where nList = nList + [n]
-            | 
+power1 :: Integer -> Integer -> Integer
+power1 n k  = product (listify n k)
+   
+listify :: Integer -> Integer -> [Integer]
+listify n k | k == 0 = [1]
+            | k > 0  = ([n] ++ [power1 n (k-1)])
+       
+testPower1 n k = power1 n k == n^k
 
 -- C -------------------------
 -- power2
 
-power2 = undefined
+power2 n k  | k==0 = 1
+            | k > 0 && isEven= power (n * n) (k `div` 2)
+            | k > 0 = n * (power n (k-1))
+         where isEven = (k `mod` 2) == 0
+
+testPower2 n k = power2 n k == n^k
 
 -- D -------------------------
 {- 

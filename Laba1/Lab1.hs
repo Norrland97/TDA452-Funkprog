@@ -1,3 +1,4 @@
+import Test.QuickCheck
 {- Lab 1
    Date: 2020-11-03
    Authors: Viktor Fredholm, Aline Eikeland
@@ -28,7 +29,7 @@ power1 n k  = product (listify n k)
 listify :: Integer -> Integer -> [Integer]
 listify n k | k == 0 = [1]
             | k > 0  = ([n] ++ [power1 n (k-1)])
-            | k < 0 = error "power: negative argument"
+            | k < 0  = error "power: negative argument"
        
 testPower1 n k = power1 n k == power n k
 
@@ -46,40 +47,35 @@ testPower2 n k = power2 n k == power n k
 
 -- D -------------------------
 
-testAllPower :: Integer -> Integer -> Bool
-testAllPower n k = testPower1 n k == testPower2 n k
+prop_powers :: Integer -> Integer -> Bool
+prop_powers n k = testPower1 n k == testPower2 n k
 
-
+prop_powers' n k = testPower1 n (abs k) == testPower2 n (abs k)
 
 printTest bos  | length bos == 0 = []
                | otherwise       = show (head bos) : printTest (tail bos)
 
-runTest = runTest' nTestValues kTestValues  
+powerTest = powerTest' nTestValues kTestValues  
 
-runTest' :: [Integer] -> [Integer] -> [Bool]
-runTest' ns ks | length ns == 0 = []
-               | otherwise      = testAllPower (head ns) (head ks) : runTest' (tail ns) (tail ks)
+powerTest' :: [Integer] -> [Integer] -> [Bool]
+powerTest' ns ks | length ns == 0 = []
+                 | otherwise      = prop_powers (head ns) (head ks) : powerTest' (tail ns) (tail ks)
 
 nTestValues :: [Integer]
-nTestValues = [3,6,0,1,5,-2,10000000,3,4,2]
+nTestValues = [3,6,0,1,5,-2,10000000,4,2]
 
 kTestValues :: [Integer]
-kTestValues = [6,2,7,10,0,4,4,3,20000,-5]
+kTestValues = [6,2,7,10,0,4,4,20000,-5]
 
 {- 
 
 <Describe your test cases here>
+We chose the values to see that some basic values would work, and then to see that negative values and big numbers works.
+As the last test value we chose to have a negative k-value, tihs gives an error and that is expected, we wanted to catch the error but did not know how so we left it as an exception/error.
+We did tru a k- value of 200000 bu that took a bit too long to run.
 
  -}
 
 -- 
-prop_powers = undefined
-
---
-powerTest :: Bool
-powerTest = undefined
-
---
-prop_powers' = undefined
 
 

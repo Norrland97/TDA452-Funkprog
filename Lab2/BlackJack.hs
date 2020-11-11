@@ -48,7 +48,7 @@ valueCount :: Bool -> Hand -> Integer
 valueCount bool Empty                       = 0
 valueCount bool (Add (Card rank suit) hand) = (valueRank bool rank) + (valueCount bool hand)
 
--- checks the value od a card. Argument boolean sets ace value depending
+-- checks the value of a card. Argument boolean sets ace value depending on if it gets a true or false. 
 valueRank :: Bool -> Rank -> Integer
 valueRank _ Jack       = 11
 valueRank _ Queen      = 12

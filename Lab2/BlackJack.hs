@@ -67,3 +67,53 @@ winner guest bank | gameOver guest               = Bank
                   | (value guest) > (value bank) = Guest
                   | otherwise                    = Bank
 
+--h1 -> last card of h1 have h2 as 'hand' in (add card hand)
+(<+) :: Hand -> Hand -> Hand
+(<+) Empty h2 = h2
+(<+) (Add card Empty) h2 = Add card h2 
+(<+) (Add card hand) h2 = Add card (hand <+ h2)
+
+
+--(<+) Empty h2 = done
+
+append :: Hand -> Card -> Hand
+append hand card = Add (card) hand
+
+prop_onTopOf_assoc :: Hand -> Hand -> Hand -> Bool
+prop_onTopOf_assoc p1 p2 p3 =
+    p1<+(p2<+p3) == (p1<+p2)<+p3
+
+prop_size_onTopOf :: Hand -> Hand -> Bool
+prop_size_onTopOf h1 h2 = (size h1 + size h2) == size (h1 <+ h2)
+
+fullDeck :: Hand 
+fullDeck = cardListToHand deckAsList
+        where deckAsList = [Card rank suit | rank <- ranks, suit <- suits] 
+
+cardListToHand :: [Card] -> Hand
+cardListToHand [] = Empty
+cardListToHand cs = Add (head cs) (cardListToHand (tail cs))
+
+ranks :: [Rank]
+ranks = Ace:King:Queen:Jack:[Numeric x | x <- [2..10]]
+suits :: [Suit]
+suits = [Spades,Hearts,Diamonds,Clubs]
+
+draw :: Hand -> Hand -> (Hand, Hand) --Deck fist, Hand second
+draw Empty _ = error "draw: The deck is empty :( "
+draw (Add card deck) hand = (deck, hand <+ Add card Empty)
+
+--          deck    hand
+playBank :: Hand -> Hand
+playBank deck = playBankHelper deck Empty
+
+playBankHelper :: Hand -> Hand -> Hand
+playBankHelper deck hand   | value hand < 16 = uncurry playBankHelper postDraw
+                           | otherwise       = hand
+        where postDraw = draw deck hand
+              
+         
+
+
+
+

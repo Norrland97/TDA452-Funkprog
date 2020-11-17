@@ -29,14 +29,9 @@ display (Add card hand) = displayCard card ++ " " ++ display hand
 
 -- converts a card to a string
 displayCard :: Card -> String
-displayCard (Card rank suit) | rank == Jack 
-                            || rank == Queen 
-                            || rank == King 
-                            || rank == Ace 
-                                          = show rank ++ " of " ++  show suit
-                             | otherwise  = numToString rank ++ " of " ++  show suit                        
-        where numToString (Numeric value) = show value
-
+displayCard (Card (Numeric n) suit) = show n ++ " of " ++  show suit  
+displayCard (Card rank suit)        = show rank ++ " of " ++  show suit
+ 
 -- calculates the value of a hand, checs if it's above 21 if so recalculates with aces as value 1 
 value :: Hand -> Integer
 value Empty = 0
@@ -50,9 +45,9 @@ valueCount bool (Add (Card rank suit) hand) = (valueRank bool rank) + (valueCoun
 
 -- checks the value of a card. Argument boolean sets ace value depending on if it gets a true or false. 
 valueRank :: Bool -> Rank -> Integer
-valueRank _ Jack       = 11
-valueRank _ Queen      = 12
-valueRank _ King       = 13
+valueRank _ Jack       = 10
+valueRank _ Queen      = 10
+valueRank _ King       = 10
 valueRank True Ace     = initialValue
         where initialValue = 11
 valueRank False Ace    = newAce

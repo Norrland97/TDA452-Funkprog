@@ -2,6 +2,7 @@ module BlackJack where
 import Cards
 import RunGame
 import Test.QuickCheck
+import System.Random
 
 -- These hands are used for testruns
 hand2 = (Add (Card (Numeric 2) Hearts)
@@ -112,8 +113,33 @@ playBankHelper deck hand   | value hand < 16 = uncurry playBankHelper postDraw
                            | otherwise       = hand
         where postDraw = draw deck hand
               
-         
+
+--function runs removeSelectI with rendomly generated Integer and input Hand 52 times
+--run w: shuffleDeck (mkStdGen <an int you can think of>) fullDeck              
+shuffleDeck :: StdGen -> Hand -> Hand     
+shuffleDeck = undefined 
 
 
+--function removes Card on sepcific index and returns tuple with the card and the hand without the card
+removeSelectI :: Integer -> Hand -> (Card, Hand)
+removeSelectI 0 (Add card hand)   = (card, hand)
+removeSelectI int (Add card hand) = (fst recurve, Add card (snd recurve))
+        where recurve = removeSelectI (int -1) hand
 
 
+--function checks if hand changes size
+prop_size_shuffle :: StdGen -> Hand -> Bool
+prop_size_shuffle = undefined
+
+
+prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool
+prop_shuffle_sameCards g c h =
+    c `belongsTo` h == c `belongsTo` shuffleDeck g h
+
+
+belongsTo :: Card -> Hand -> Bool
+c `belongsTo` Empty = False
+c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
+
+belongsTo :: Card -> Card
+belongsTo = 188

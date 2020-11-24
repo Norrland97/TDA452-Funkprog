@@ -32,25 +32,64 @@ example =
     n = Nothing
     j = Just
 
+example' :: Sudoku
+example' =
+    Sudoku
+      [ [j 3,j 6,j 8,j 8,j 7,j 1,j 2,j 8,j 8]
+      , [j 8,j 5,j 8,j 8,j 8,j 8,j 1,j 8,j 8]
+      , [j 8,j 8,j 9,j 2,j 8,j 4,j 7,j 8,j 8]
+      , [j 8,j 8,j 8,j 8,j 1,j 3,j 8,j 2,j 8]
+      , [j 4,j 8,j 8,j 5,j 8,j 2,j 8,j 8,j 9]
+      , [j 2,j 7,j 8,j 4,j 6,j 8,j 8,j 8,j 8]
+      , [j 8,j 8,j 5,j 3,j 8,j 8,j 9,j 8,j 8]
+      , [j 8,j 8,j 3,j 8,j 8,j 8,j 8,j 6,j 8]
+      , [j 8,j 8,j 7,j 6,j 9,j 8,j 8,j 4,j 3]
+      ]
+  where
+    n = Nothing
+    j = Just
+
+exampleRow =
+    [j 3,j 6,j 8,j 8,j 7,j 1,j 2,j 8,j 6]
+  where
+    n = Nothing
+    j = Just
 -- * A1
 
 -- | allBlankSudoku is a sudoku with just blanks
 allBlankSudoku :: Sudoku
-allBlankSudoku = undefined
+allBlankSudoku = Sudoku allBlankTable
+  where allBlankRow    = replicate 9 Nothing
+        allBlankTable = replicate 9 allBlankRow
 
+--allBlankSudoku' :: Sudoku
+--allBlankSudoku' = Soduku allBlankHelper 9
+--  where allBlankRow int = Nothing : allBlankRow
 -- * A2
 
 -- | isSudoku sud checks if sud is really a valid representation of a sudoku
 -- puzzle
 isSudoku :: Sudoku -> Bool
-isSudoku = undefined
+isSudoku (Sudoku rs) = nineLong rs && isRows rs
+    where isRows rs | null rs   = True
+                    | otherwise = nineLong (head rs) && isRows (tail rs)
+          nineLong row = length row == 9
 
 -- * A3
 
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
-isFilled = undefined
+isFilled (Sudoku (r:[])) = isRowFilled r
+isFilled (Sudoku (r:rs)) = isRowFilled r && isFilled (Sudoku rs)
+
+isRowFilled :: [Maybe a] -> Bool
+isRowFilled = all notNull
+       where notNull a = not (null a)
+
+--isRowFilled :: Row -> Bool
+--isRowFilled (x:[]) = not (null x)
+--isRowFilled (x:xs) = not (null x) && isRowFilled xs
 
 ------------------------------------------------------------------------------
 
@@ -59,14 +98,51 @@ isFilled = undefined
 -- | printSudoku sud prints a nice representation of the sudoku sud on
 -- the screen
 printSudoku :: Sudoku -> IO ()
-printSudoku = undefined
+printSudoku (Sudoku (r:[])) = do printRow r
+printSudoku (Sudoku (r:rs)) = do printRow r 
+                                 printSudoku (Sudoku rs)
+
+printRow :: Row -> IO ()
+printRow (x:[]) = do putStr (showCell x)
+                     putStrLn ""
+printRow (x:xs) = do putStr (showCell x)
+                     printRow xs
+
+showCell :: Cell -> String
+showCell Nothing     = "."
+showCell (Just num) = show num
 
 -- * B2
 
 -- | readSudoku file reads from the file, and either delivers it, or stops
 -- if the file did not contain a sudoku
 readSudoku :: FilePath -> IO Sudoku
-readSudoku = undefined
+readSudoku file = do
+        s <- readFile file
+        putStr s
+        return (Sudoku [])
+    --where 
+    --toTable (c:cs) new = undefined
+
+--readRows :: IO String -> Row
+--readRows (IO (bStr:("\n":aStr))) = (readRow bStr) ++ readRows aStr
+
+readRow :: IO String -> Row
+readRow str = do (p:aStr) <- str
+                 let tT "." = Nothing
+                     tT num = Int (fromString num) 
+                     oT = tT p
+                     aA []  = oT
+                     aA e   = oT : (readRow aStr) 
+                 return(aA aStr) 
+                 
+
+
+
+--readRow (".":aStr) = Nothing: (nC aStr)
+--readRow (num:aStr) = (fromString num):(nC aStr)
+--   where nC [] = []
+--         nC str = readRow aStr
 
 ------------------------------------------------------------------------------
 

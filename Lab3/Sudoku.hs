@@ -119,23 +119,38 @@ showCell (Just num) = show num
 readSudoku :: FilePath -> IO Sudoku
 readSudoku file = do
         s <- readFile file
-        putStr s
-        return (Sudoku [])
+        let sud = Sudoku (map readRow (lines s))
+        if isSudoku sud
+            then return sud
+            else error "Not a sudoku!"
     --where 
     --toTable (c:cs) new = undefined
 
 --readRows :: IO String -> Row
 --readRows (IO (bStr:("\n":aStr))) = (readRow bStr) ++ readRows aStr
 
-readRow :: IO String -> Row
-readRow str = do (p:aStr) <- str
-                 let tT "." = Nothing
-                     tT num = Int (fromString num) 
-                     oT = tT p
-                     aA []  = oT
-                     aA e   = oT : (readRow aStr) 
-                 return(aA aStr) 
+--readRow :: IO String -> Row
+--readRow str = do (p : aStr) <- str
+  --               let tT "." = Nothing
+    --                 tT num = Int (fromString num) 
+      --               oT = tT p
+        --             aA []  = oT
+          --           aA e   = oT : (readRow aStr) 
+            --     return(aA aStr) 
                  
+
+
+readRow :: String -> Row
+--readRow ('.':aStr) = Nothing : (aA aStr)
+--    where aA [] = []
+--          aA e  = readRow aStr
+--readRow (num:aStr) = Just (read [num]) : (aA aStr)
+--    where aA [] = []
+--          aA e  = readRow aStr
+readRow (b:aStr) | b == '.'  = Nothing : aA aStr
+                 | otherwise = Just (read [b]) : aA aStr
+    where aA [] = []
+          aA e  = readRow aStr
 
 
 

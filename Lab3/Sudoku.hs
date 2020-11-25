@@ -123,42 +123,24 @@ readSudoku file = do
         if isSudoku sud
             then return sud
             else error "Not a sudoku!"
-    --where 
-    --toTable (c:cs) new = undefined
-
---readRows :: IO String -> Row
---readRows (IO (bStr:("\n":aStr))) = (readRow bStr) ++ readRows aStr
-
---readRow :: IO String -> Row
---readRow str = do (p : aStr) <- str
-  --               let tT "." = Nothing
-    --                 tT num = Int (fromString num) 
-      --               oT = tT p
-        --             aA []  = oT
-          --           aA e   = oT : (readRow aStr) 
-            --     return(aA aStr) 
-                 
 
 
 readRow :: String -> Row
---readRow ('.':aStr) = Nothing : (aA aStr)
---    where aA [] = []
---          aA e  = readRow aStr
---readRow (num:aStr) = Just (read [num]) : (aA aStr)
---    where aA [] = []
---          aA e  = readRow aStr
 readRow (b:aStr) | b == '.'  = Nothing : aA aStr
                  | otherwise = Just (read [b]) : aA aStr
     where aA [] = []
-          aA e  = readRow aStr
+          aA _  = readRow aStr
+------------------Tests------------------
+--Finally, we need to be able to test properties about the functions related to our Sudokus. In order to do so, QuickCheck needs to be able to generate arbitrary Sudokus.
+--Let us split this problem into a number of smaller problems. First, we need to know how to generate arbitrary cell values (of type Maybe Int). Then, we need to know how to generate 81 such cells, and compose them all into a Sudoku.
+genSudoku :: Sudoku
+genSudoku = Sudoku genRows
 
-
-
---readRow (".":aStr) = Nothing: (nC aStr)
---readRow (num:aStr) = (fromString num):(nC aStr)
---   where nC [] = []
---         nC str = readRow aStr
-
+genRows :: [Row]
+genRows = undefined
+--    where   c = oneof [na, rNum]
+  --          na = Nothing
+    --        rNum = elements $ map Num [1..9]
 ------------------------------------------------------------------------------
 
 -- * C1

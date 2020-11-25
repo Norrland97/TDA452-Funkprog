@@ -122,7 +122,7 @@ readSudoku file = do
         let sud = Sudoku (map readRow (lines s))
         if isSudoku sud
             then return sud
-            else error "Not a sudoku!"
+            else error "readSudoku: Not a soduku!"
 
 
 readRow :: String -> Row
@@ -130,38 +130,32 @@ readRow (b:aStr) | b == '.'  = Nothing : aA aStr
                  | otherwise = Just (read [b]) : aA aStr
     where aA [] = []
           aA _  = readRow aStr
-------------------Tests------------------
---Finally, we need to be able to test properties about the functions related to our Sudokus. In order to do so, QuickCheck needs to be able to generate arbitrary Sudokus.
---Let us split this problem into a number of smaller problems. First, we need to know how to generate arbitrary cell values (of type Maybe Int). Then, we need to know how to generate 81 such cells, and compose them all into a Sudoku.
-genSudoku :: Sudoku
-genSudoku = Sudoku genRows
 
-genRows :: [Row]
-genRows = undefined
---    where   c = oneof [na, rNum]
-  --          na = Nothing
-    --        rNum = elements $ map Num [1..9]
 ------------------------------------------------------------------------------
 
 -- * C1
 
 -- | cell generates an arbitrary cell in a Sudoku
 cell :: Gen (Cell)
-cell = undefined
+cell = frequency [(9,no),(1,num)]
+    where no  = elements [Nothing]
+          num = elements (map Just [1..9])
 
 
 -- * C2
 
 -- | an instance for generating Arbitrary Sudokus
 instance Arbitrary Sudoku where
-  arbitrary = undefined
+  arbitrary = do 
+        rs <- vectorOf 9 (vectorOf 9 cell)
+        return (Sudoku rs)
 
  -- hint: get to know the QuickCheck function vectorOf
  
 -- * C3
 
 prop_Sudoku :: Sudoku -> Bool
-prop_Sudoku = undefined
+prop_Sudoku = isSudoku
   -- hint: this definition is simple!
   
 ------------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 module Sudoku where
 
 import Test.QuickCheck
+import Data.List ( genericLength, nub,transpose, splitAt )
 
 ------------------------------------------------------------------------------
 
@@ -166,21 +167,45 @@ type Block = [Cell] -- a Row is also a Cell
 -- * D1
 
 isOkayBlock :: Block -> Bool
-isOkayBlock = undefined
+isOkayBlock block = length (nub block) == 9
 
 
 -- * D2
 
 blocks :: Sudoku -> [Block]
-blocks = undefined
+blocks sudoku = blocksCol sudoku ++ blocksRow sudoku ++ blocksBox (1,1) sudoku
+
+blocksCol :: Sudoku -> [Block]
+blocksCol (Sudoku rs) = transpose rs
+
+blocksRow :: Sudoku -> [Block]
+blocksRow (Sudoku rs) = rs
+
+blocksBox :: (Int, Int) -> Sudoku -> [Block]
+blocksBox (row, col) (Sudoku rows) | col == -1 = []
+                                   | otherwise = concat 
+                                                    (third col
+                                                        (transpose ( third row rows))) 
+                                                            : blocksBox (nR, nC) (Sudoku rows) 
+    where nR | col == 3 && row /= 3 = row + 1
+             | otherwise = row
+          nC | col /= 3 = col + 1
+             | row /= 3 = 1
+             | otherwise = -1
+          third metric input = drop (3*(metric-1))(take (3*metric) input)
+
+
+test' row col (Sudoku rows) = concat (drop (3*(col-1)) (take (3*col) (transpose ( drop (3*(col-1)) (take (3*row) rows)))))        
+
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths = undefined
+prop_blocks_lengths sudoku = length bs == 27 && and [length x == 9 | x<-bs]
+        where bs          = blocks sudoku 
 
 -- * D3
 
 isOkay :: Sudoku -> Bool
-isOkay = undefined
+isOkay sudoku = all isOkayBlock (blocks sudoku)
 
 
 ---- Part A ends here --------------------------------------------------------

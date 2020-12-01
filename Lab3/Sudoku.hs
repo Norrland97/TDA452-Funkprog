@@ -301,21 +301,100 @@ type Solution = Maybe Sudoku
 solve :: Sudoku -> Solution
 solve s | not (isSudoku s)       = Nothing
         | isOkay s && isFilled s = Just s
-        | otherwise              = head (solve' s (blanks s))
+        | not (isOkay s)         = Nothing
+        | otherwise              = head (candidate' s (blanks s))
+      -- || null (candidate' (Just s) (blanks s))         = Nothing
+       
+   -- where solution = candidate' (Just s) (blanks s)
 
 solve' :: Sudoku -> [Pos] -> [Solution]
 solve' s (b:bs) | null oneDown = []
                 | null bs      = [oneDown]
-                | otherwise    = (oneDown : oO oneDown)
+                | otherwise    = nextPos oneDown
     where oneDown          = oneNum s b 1
-          oO (Just sudoku) = solve' sudoku bs
-          
+          nextPos (Just sudoku) = solve' sudoku bs
+{-}
+solve'' :: Sudoku -> [Pos] -> Cell -> [Solution]
+solve'' sud (p:ps) usedCell | isNothing  newSud = []
+                            | otherwise         = (solve'' newSud ps) : (solve'' (p:ps) (newCell newSud))
+        where newSud              = oneNum sud p ((Just usedCell)+1)
+              newCell (Sudoku rs) = rs !! (fst p) !! (snd p)
+-}
 
+--solve'' :: Sudoku -> [Pos] -> [Solution]
+--solve'' s (a:b:c) | null oneDown = []
+--                  |          
+--    where oneDown          = oneNum s b 1   
+
+--root s (p:pos) = 
+    
+candidate :: Solution -> [Solution]
+candidate sud  | isFilled (chop sud) && isOkay (chop sud) = [sud]          -- 1. success
+               | null oNR = []                                             -- 2. failure
+--               | null (candidate oNR) = []                                 -- 4. failure
+               | otherwise = concatMap candidate (chopList' everyOneNum)   -- 3. ok, downwards                     
+    where s:_ = blanks (chop sud)
+          oNR  = oneNum (chop sud) s 1              --
+          everyOneNum = map eONH numbers             -- tries every number in next blank space and return valid solutions in list
+          eONH i = dOneNum (chop sud) s i            -- try i in the next blank space. May return Nothing
+          numbers = [1,2,3,4,5,6,7,8,9]
+
+blanksTest :: [Pos]
+blanksTest = blanks (chop (oneNum example (0,2) 1))
+
+
+candidate' :: Sudoku -> [Pos] -> [Solution]
+candidate' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]     -- 1. success
+                      | null everyOneNum      = []                           -- 2. failure
+--               || null (candidate' oNR) = []                 -- 4. failure
+                      | otherwise = concatMap oRC everyOneNum        -- 3. ok, downwards                     
+    where oRC n = candidate' n ps               -- recursively call candidate' with sudoku argument n and [Pos] argument ps.
+ --         oNR  = oneNum sud p 1              --
+          everyOneNum = chopList (map eONH numbers)    -- tries every number in next blank space and return valid solutions in list
+          eONH i = dOneNum sud p i            -- try i in the next blank space. May return Nothing
+          numbers = [1,2,3,4,5,6,7,8,9]
+          
+          {-}
+
+          candidate :: Solution -> [Solution]
+candidate sud  | isFilled sud && isOkay sud = [Just sud]     -- 1. success
+               | null oNR = []                                   -- 2. failure
+               | null (candidate (chop oNR)) = []                 -- 4. failure
+               | otherwise = concat (map candidate everyOneNum )              -- 3. success, downwards                     
+    where s:bs = blanks sud
+          oNR  = dOneNum sud s 1
+          everyOneNum = map eONH numbers
+          eONH i = dOneNum sud s i
+          numbers = [1,2,3,4,5,6,7,8,9]
+-}
+chop :: (Maybe a) -> a
+chop (Just a) = a
+
+chopList :: [Maybe a] -> [a]
+chopList ((Just i): xs) = i: (chopList xs)
+chopList (Nothing:xs) = chopList xs
+chopList x = []
+
+chopList' :: [Maybe a] -> [Maybe a]
+chopList' ((Just i): xs) = (Just i): (chopList' xs)
+chopList' (Nothing:xs) = chopList' xs
+chopList' x = []
+
+        
+-- Changes the given position in the table to a non-conflicting number, starting from int
 oneNum :: Sudoku -> Pos -> Int -> Solution
-oneNum s pos int | isOkay (nT int) = Just (nT int)
-                 | int == 9        = Nothing
-                 | otherwise       = oneNum s pos (int+1)
-    where nT n = update s pos (Just n)
+oneNum oldSud pos int | isOkay newSud = Just newSud
+                      | int == 9      = Nothing
+                      | otherwise     = oneNum oldSud pos (int+1)
+    where newSud = update oldSud pos (Just int)
+
+dOneNum :: Sudoku -> Pos -> Int -> Solution   -- try new number in position. If not okay, return Nothing
+dOneNum oldSud pos int | isOkay newSud = Just newSud
+                       | otherwise     = Nothing
+    where newSud = update oldSud pos (Just int)
+
+dOneTest :: [Solution]
+dOneTest = map (dOneNum example (0,2)) [1,2,3,4,5,6,7,8,9] 
 
 -- * F2
 

@@ -238,10 +238,10 @@ type Pos = (Int,Int)
 
 blanks :: Sudoku -> [Pos]
 blanks (Sudoku []) = []
---blanks (Sudoku r:rs) = zipLen (blanksHelper r rs)
+blanks (Sudoku r:rs) = zipLen (blanksHelper r rs)
 
---blanksHelper :: [a] -> [(a, Int)]
---blanksHelper rs = map zipLen rs
+blanksHelper :: [a] -> [(a, Int)]
+blanksHelper rs = map zipLen rs
       
 
 zipLen :: [a] -> [(a,Int)]
@@ -290,7 +290,9 @@ type Solution = Maybe Sudoku
 
 -- * F1
 solve :: Sudoku -> Solution
-solve s = head (solve' s (blanks s))
+solve s | not (isSudoku s)
+       || not (isOkay s) = Nothing
+        | otherwise      = head (solve' s (blanks s))
 
 solve' :: Sudoku -> [Pos] -> [Solution]
 solve' = undefined

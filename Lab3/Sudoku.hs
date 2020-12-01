@@ -299,17 +299,24 @@ type Solution = Maybe Sudoku
 
 -- * F1
 solve :: Sudoku -> Solution
-solve s | not (isSudoku s)
-       || not (isOkay s) = Nothing
-        | otherwise      = head (solve' s (blanks s))
+solve s | not (isSudoku s)       = Nothing
+        | isOkay s && isFilled s = Just s
+        | otherwise              = head (solve' s (blanks s))
 
 solve' :: Sudoku -> [Pos] -> [Solution]
-solve' s (b:bs) | isOkay s = concat (map mappableS freshS)
-                | otherwise = []
-    where freshS        = map mappableU numbs
-          mappableU n   = update s b n
-          numbs         = [1,2,3,4,5,6,7,8,9]
-          mappableS sud = solve' sud bs
+solve' s (b:bs) | null oneDown = []
+                | null bs      = [oneDown]
+                | otherwise    = (oneDown : oO oneDown)
+    where oneDown          = oneNum s b 1
+          oO (Just sudoku) = solve' sudoku bs
+          
+
+oneNum :: Sudoku -> Pos -> Int -> Solution
+oneNum s pos int | isOkay (nT int) = Just (nT int)
+                 | int == 9        = Nothing
+                 | otherwise       = oneNum s pos (int+1)
+    where nT n = update s pos (Just n)
+
 -- * F2
 
 

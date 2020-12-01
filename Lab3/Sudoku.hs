@@ -295,7 +295,12 @@ solve s | not (isSudoku s)
         | otherwise      = head (solve' s (blanks s))
 
 solve' :: Sudoku -> [Pos] -> [Solution]
-solve' = undefined
+solve' s (b:bs) | isOkay s = concat (map mappableS freshS)
+                | otherwise = []
+    where freshS        = map mappableU numbs
+          mappableU n   = update s b n
+          numbs         = [1,2,3,4,5,6,7,8,9]
+          mappableS sud = solve' sud bs
 -- * F2
 
 

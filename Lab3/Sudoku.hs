@@ -2,7 +2,7 @@ module Sudoku where
 
 import Test.QuickCheck
 import Data.List ( genericLength, nub,transpose, splitAt)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isNothing)
 
 ------------------------------------------------------------------------------
 
@@ -238,14 +238,18 @@ type Pos = (Int,Int)
 
 blanks :: Sudoku -> [Pos]
 blanks (Sudoku []) = []
-blanks (Sudoku r:rs) = zipLen (blanksHelper r rs)
+blanks (Sudoku rs) = concatMap blanksHelper indexdRs
+    where 
+        indexdRs    = zipWith (curry indexAll) [0..(length rs - 1)] rs
+        indexAll as = zip [(fst as,b) | b<- [0..(length (snd as) - 1)]] (snd as)
+         
 
-blanksHelper :: [a] -> [(a, Int)]
-blanksHelper rs = map zipLen rs
-      
 
-zipLen :: [a] -> [(a,Int)]
-zipLen as = zip as [1..(length as)]
+blanksHelper :: [((Int,Int), Cell)] -> [(Int, Int)]
+blanksHelper (d:[]) | isNothing (snd d) = [fst d]
+                    | otherwise         = []
+blanksHelper (d:ds) | isNothing (snd d) = fst d:blanksHelper ds
+                    | otherwise         = blanksHelper ds
 
 --prop_blanks_allBlanks :: ...
 --prop_blanks_allBlanks =

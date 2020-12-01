@@ -217,7 +217,7 @@ blocksBox (row, col) (Sudoku rows) | col == -1 = []                             
 -- test for blocks function
 prop_blocks_lengths :: Sudoku -> Bool
 prop_blocks_lengths sudoku = length bs == 27 && and [length x == 9 | x<-bs]
-        where bs          = blocks sudoku 
+        where bs           = blocks sudoku 
 
 -- * D3
 -- checks if the sudoku contains blocks with repeated digits
@@ -235,7 +235,7 @@ isOkay sudoku = all isOkayBlock (blocks sudoku)
 type Pos = (Int,Int)
 
 -- * E1
-
+--Returns all the coordinates of the blanks in the sudoku, starting from top left and starting with the first row
 blanks :: Sudoku -> [Pos]
 blanks (Sudoku []) = []
 blanks (Sudoku rs) = concatMap blanksHelper indexdRs
@@ -244,24 +244,27 @@ blanks (Sudoku rs) = concatMap blanksHelper indexdRs
         indexAll as = zip [(fst as,b) | b<- [0..(length (snd as) - 1)]] (snd as)
          
 
-
+--Checks the given row for 'Nothing' values of the cell and returns the coordinates 
 blanksHelper :: [((Int,Int), Cell)] -> [(Int, Int)]
-blanksHelper (d:[]) | isNothing (snd d) = [fst d]
+blanksHelper (d:[]) | isNothing (snd d) = [fst d] -- feels like there is a smarter way of catching the last element of the list
                     | otherwise         = []
 blanksHelper (d:ds) | isNothing (snd d) = fst d:blanksHelper ds
                     | otherwise         = blanksHelper ds
 
---prop_blanks_allBlanks :: ...
---prop_blanks_allBlanks =
+-- checks if the ammount of positions where there are blanks is as many as the expected number in the 'allBlankSudoku' (works with nub on the list aswell)
+prop_blanks_allBlanks :: Bool
+prop_blanks_allBlanks = length (blanks allBlankSudoku) == 9*9
 
 -- * E2
 
+-- replaces the index of a list with a given element
 (!!=) :: [a] -> (Int,a) -> [a]
-l@(x:xs) !!= (i,y) | i < 0            = l                            -- error "Can not operate in negative index"
-                   | i > (length l-2) = l                            -- error ("Index " ++ (show i) ++ "out of bounds")
-                   | i == 0           = y : xs 
-                   | otherwise        = x : (xs !!= (i-1, y))
+l@(x:xs) !!= (i,y) | i < 0                                         -- error "Can not operate in negative index"
+                   || i > (length l-2) = l                            -- error ("Index " ++ (show i) ++ "out of bounds")
+                   | i == 0            = y : xs 
+                   | otherwise         = x : (xs !!= (i-1, y))
 
+-- Checks if !!= works for some values
 prop_bangBangEquals_correct :: Bool
 prop_bangBangEquals_correct = replicate 9 Nothing !!= (2, Just 8)  == [n  ,n  ,j 8,n  ,n  ,n  ,n  ,n  ,n  ]
                            && replicate 9 Nothing !!= (11, Just 8) == [n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ]
@@ -276,17 +279,19 @@ prop_bangBangEquals_correct = replicate 9 Nothing !!= (2, Just 8)  == [n  ,n  ,j
 
 -- * E3
 
+--Updates the soduku at the given position with the given cell
 update :: Sudoku -> Pos -> Cell -> Sudoku
 update (Sudoku rs) pos c = Sudoku (updateMatrix rs pos c)
 
+--Helperfunction for update, updates a table at a given position with a given cell
 updateMatrix :: [Row] -> Pos -> Cell -> [Row]
 updateMatrix (r:rs) (row, col) ce | row == 0  = r !!= (col, ce) : rs
                                   | otherwise = r : updateMatrix rs (row-1, col) ce
 
-
+-- tests if the given positions of a sudoku will change with the given cell
 prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
-prop_update_updated (Sudoku s) (row, col) c = (updateMatrix s (row, col) c !! row) !! col == c
-
+prop_update_updated sud p@(row, col) c = sudRows (update sud p c) !! row !! col == c --(updateMatrix s (row, col) c !! row) !! col == c
+            where sudRows (Sudoku rs) = rs
 
 ------------------------------------------------------------------------------
 

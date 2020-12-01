@@ -11,7 +11,7 @@ type Cell = Maybe Int -- a single cell
 type Row  = [Cell]    -- a row is a list of cells
 
 data Sudoku = Sudoku [Row] 
- deriving ( Show, Eq )
+    deriving ( Show, Eq )
 
 rows :: Sudoku -> [Row]
 rows (Sudoku ms) = ms
@@ -30,9 +30,9 @@ example =
       , [n  ,j 8,j 3,n  ,n  ,n  ,n  ,j 6,n  ]
       , [n  ,n  ,j 7,j 6,j 9,n  ,n  ,j 4,j 3]
       ]
-  where
-    n = Nothing
-    j = Just
+    where
+        n = Nothing
+        j = Just
 
 example' :: Sudoku
 example' =
@@ -237,35 +237,63 @@ type Pos = (Int,Int)
 -- * E1
 
 blanks :: Sudoku -> [Pos]
-blanks = undefined
+blanks (Sudoku []) = []
+--blanks (Sudoku r:rs) = zipLen (blanksHelper r rs)
+
+--blanksHelper :: [a] -> [(a, Int)]
+--blanksHelper rs = map zipLen rs
+      
+
+zipLen :: [a] -> [(a,Int)]
+zipLen as = zip as [1..(length as)]
 
 --prop_blanks_allBlanks :: ...
 --prop_blanks_allBlanks =
 
-
 -- * E2
 
 (!!=) :: [a] -> (Int,a) -> [a]
-xs !!= (i,y) = undefined
+l@(x:xs) !!= (i,y) | i < 0            = l                            -- error "Can not operate in negative index"
+                   | i > (length l-2) = l                            -- error ("Index " ++ (show i) ++ "out of bounds")
+                   | i == 0           = y : xs 
+                   | otherwise        = x : (xs !!= (i-1, y))
 
---prop_bangBangEquals_correct :: ...
---prop_bangBangEquals_correct =
+prop_bangBangEquals_correct :: Bool
+prop_bangBangEquals_correct = replicate 9 Nothing !!= (2, Just 8)  == [n  ,n  ,j 8,n  ,n  ,n  ,n  ,n  ,n  ]
+                           && replicate 9 Nothing !!= (11, Just 8) == [n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ]
+                           && replicate 9 Nothing !!= (-4, Just 8) == [n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ]
+                           && exampleRow          !!= (2, Just 3)  == [j 3,j 6,j 3,j 8,j 7,j 1,j 2,j 8,j 6]
+                           && exampleRow          !!= (28, Just 3) == [j 3,j 6,j 8,j 8,j 7,j 1,j 2,j 8,j 6]
+                           && exampleRow          !!= (-3, Just 3) == [j 3,j 6,j 8,j 8,j 7,j 1,j 2,j 8,j 6]
+                           && exampleRow          !!= (2, Nothing) == [j 3,j 6,n  ,j 8,j 7,j 1,j 2,j 8,j 6]
+    where n = Nothing
+          j = Just
 
 
 -- * E3
 
 update :: Sudoku -> Pos -> Cell -> Sudoku
-update = undefined
+update (Sudoku rs) pos c = Sudoku (updateMatrix rs pos c)
 
---prop_update_updated :: ...
---prop_update_updated =
+updateMatrix :: [Row] -> Pos -> Cell -> [Row]
+updateMatrix (r:rs) (row, col) ce | row == 0  = r !!= (col, ce) : rs
+                                  | otherwise = r : updateMatrix rs (row-1, col) ce
+
+
+prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
+prop_update_updated (Sudoku s) (row, col) c = (updateMatrix s (row, col) c !! row) !! col == c
 
 
 ------------------------------------------------------------------------------
 
+type Solution = Maybe Sudoku
+
 -- * F1
+solve :: Sudoku -> Solution
+solve s = head (solve' s (blanks s))
 
-
+solve' :: Sudoku -> [Pos] -> [Solution]
+solve' = undefined
 -- * F2
 
 

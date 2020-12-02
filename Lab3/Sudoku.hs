@@ -363,8 +363,14 @@ solve' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]                     
 numsNotInBlock :: Sudoku -> Pos -> [Int]
 numsNotInBlock sud@(Sudoku rs) (r, c) = ns \\ bs 
         where ns = [1..9] 
-              bs = catMaybes (rs !! r) ++ catMaybes (blocksCol sud !! c)
+              bs = catMaybes (rs !! r) ++ catMaybes (blocksCol sud !! c) ++ 
         
+-- Given a sudoku and a position, returns the relative 3by3 block
+blocksBoxS :: Sudoku -> Pos -> [Cell]
+blocksBoxS (Sudoku rs) (r, c) | c > 2 = blocksBoxS (Sudoku (map (drop 3) rs)) (r, c-3)
+                              | r > 2 = blocksBoxS (Sudoku (drop 3 rs)) (r-3, c)
+                              | otherwise = concatMap (take 3) (take 3 rs)
+
 -- Removes 'Nothing' elements from list
 chopList :: [Maybe a] -> [Maybe a]
 chopList ((Just i): xs) = Just i:chopList xs

@@ -3,6 +3,7 @@ module Sudoku where
 import Test.QuickCheck
 import Data.List ( genericLength, nub,transpose, splitAt)
 import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing)
+import Maybes (isJust)
 
 ------------------------------------------------------------------------------
 
@@ -386,5 +387,15 @@ isSolutionOf sol sud = isOkay sol
                     && Just sol == solve sud
 
 -- * F4
+
+--Property for quickcheck, if the solution of a sudoku exists it compares it using isSolutionOf
 prop_SolveSound :: Sudoku -> Property
-prop_SolveSound sud = isSolutionOf (fromJust (solve sud)) sud
+prop_SolveSound sud = isJust sol ==> isSolutionOf (fromJust sol) sud
+    where sol = solve sud
+
+--Fewer checks for quickcheck
+fewerChecks :: Testable prop => prop -> IO ()
+fewerChecks = quickCheckWith stdArgs{maxSuccess=30 }
+
+-- runs the fewerChecks
+main = fewerChecks prop_SolveSound

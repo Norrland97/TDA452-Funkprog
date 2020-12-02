@@ -1,7 +1,7 @@
 module Sudoku where
 
 import Test.QuickCheck
-import Data.List ( genericLength, nub,transpose, splitAt)
+import Data.List ((\\), genericLength, nub,transpose, splitAt)
 import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing)
 import Maybes (isJust)
 
@@ -346,19 +346,45 @@ solve s | not (isSudoku s)       = Nothing                                  -- i
 
 -- helper function for the solve function. with recursive calls tihs uptades the positions to possible values and returns a list of all possible solutions if there are any
 solve' :: Sudoku -> [Pos] -> [Solution]
-solve' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]                             -- success. Sudoku filled in correctly.
+solve' sud (p:ps) | null nums                  = []
+                  | isFilled sud && isOkay sud = [Just sud]                             -- success. Sudoku filled in correctly.
                   | null allOptBlank           = []                                     -- no options for p blank space. End recursive path
                   | null ps                    = chopList (map updateBlankIfOk nums)    -- p is now the last blankspace to be filled in
                   | otherwise                  = concatMap sols allOptBlank             -- for every available option for p blank space, drop down and recursively try with next blank space                    
     where 
-          sols :: Sudoku -> [Solution]                                                  -- recursively call solve' with sudoku argument n and [Pos] argument ps.
-          sols n            = solve' n ps               
-          allOptBlank :: [Sudoku]                                                       -- tries every number in next blank space and return valid solutions in list
-          allOptBlank       = mapMaybe updateBlankIfOk nums                       
-          updateBlankIfOk :: Int -> Solution                                            -- try i in the next blank space. May return Nothing
-          updateBlankIfOk i = tryUpdate sud p i                        
-          nums = [1..9]
+          sols n            = solve' n ps                                                  -- recursively call solve' with sudoku argument n and [Pos] argument ps.
+          allOptBlank       = mapMaybe updateBlankIfOk nums                                                         -- tries every number in next blank space and return valid solutions in list
+          updateBlankIfOk i = Just (update sud p (Just i))            --tryUpdate sud p i                                 -- try i in the next blank space. May return Nothing
+          nums = numsNotInBlock sud p
         
+-- | testa om numren är not a member of '∉' sud Blocken som är relevant
+numsNotInBlock :: Sudoku -> Pos -> [Int]
+numsNotInBlock sud@(Sudoku rs) (r, c) = ns \\ bs 
+        where ns = [1..9] 
+              bs = catMaybes (rs !! r) ++ catMaybes (blocksCol sud !! c) ++ catMaybes (blocksBoxS sud (r,c))
+
+blocksBoxS :: Sudoku -> Pos -> [Cell]
+blocksBoxS (Sudoku rs) (r, c) | c >= 4 = blocksBoxS (Sudoku (map (drop 3) rs)) (r-3, c)
+                              | r >= 4 = blocksBoxS (Sudoku (drop 3 rs)) (r, c-3)
+                              | otherwise = concatMap (take 3) (take 3 rs)
+
+
+{-| col == -1 = []                                                 -- col == -1 is a flag indicating that we are done traversing the sudoku
+                                 | otherwise = concat                                             -- concat flattens the 3x3 matrix to a length 9 list
+                                                    (third col                                      -- "chops" a third of the sudoku in the other direction
+                                                        (transpose ( third row rs)))              -- "chops" a third of the sudoku in the first direction. Then transposes the result from a 3*9 matrix to a 9*3 so that we can "chop higher".
+                                                            : blocksBox (nR, nC) (Sudoku rs)      -- recursively continues for the nine boxes of the sudoku
+    where row = inRow `mod` 3
+          col = inCol `mod` 3
+          nR | col == 3 && row /= 3 = row + 1                                                       -- these calculates the bounds of the next box
+             | otherwise            = row
+          nC | col /= 3             = col + 1
+             | row /= 3             = 1
+             | otherwise            = -1
+          third metric input        = drop (3*(metric-1))(take (3*metric) input)                    -- this local helper function takes a wanted prefix and then drops an unwanted prefix
+                                                                                                    -- e.g. we want the middle part: takes the first six elements, then drops the first three elements of this 
+-}
+
 -- Removes 'Nothing' elements from list
 chopList :: [Maybe a] -> [Maybe a]
 chopList ((Just i): xs) = Just i:chopList xs

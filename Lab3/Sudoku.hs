@@ -51,6 +51,41 @@ example' =
     n = Nothing
     j = Just
 
+example'' :: Sudoku
+example'' =
+    Sudoku
+      [ [n  ,j 6,j 8,j 1,j 3,j 5,j 2,j 4,j 7]
+      , [j 1,j 3,j 7,j 8,j 4,j 2,j 9,j 5,j 6]
+      , [j 4,j 2,j 5,j 9,j 6,j 7,j 3,j 8,j 1]
+      , [j 7,j 8,j 2,j 6,j 1,j 3,j 4,j 9,j 5]
+      , [j 3,j 1,j 4,j 5,j 9,j 8,j 7,j 6,j 2]
+      , [j 5,j 9,j 6,j 2,j 7,j 4,j 8,j 1,j 3]
+      , [j 8,j 7,j 9,j 3,j 5,j 1,j 6,j 2,j 4]
+      , [j 6,j 4,j 1,j 7,j 2,j 9,j 5,j 3,j 8]
+      , [j 2,j 5,j 3,j 4,j 8,j 6,j 1,j 7,j 9]
+      ]
+  where
+    n = Nothing
+    j = Just
+
+{-}
+example' :: Sudoku
+example' =
+    Sudoku
+      [ [j 9,j 6,j 8,j 1,j 3,j 5,j 2,j 4,j 7]
+      , [j 1,j 3,j 7,j 8,j 4,j 2,j 9,j 5,j 6]
+      , [j 4,j 2,j 5,j 9,j 6,j 7,j 3,j 8,j 1]
+      , [j 7,j 8,j 2,j 6,j 1,j 3,j 4,j 9,j 5]
+      , [j 3,j 1,j 4,j 5,j 9,j 8,j 7,j 6,j 2]
+      , [j 5,j 9,j 6,j 2,j 7,j 4,j 8,j 1,j 3]
+      , [j 8,j 7,j 9,j 3,j 5,j 1,j 6,j 2,j 4]
+      , [j 6,j 4,j 1,j 7,j 2,j 9,j 5,j 3,j 8]
+      , [j 2,j 5,j 3,j 4,j 8,j 6,j 1,j 7,j 9]
+      ]
+  where
+    n = Nothing
+    j = Just
+-}
 exampleRow :: [Maybe Int]
 exampleRow =
     [j 3,j 6,j 8,j 8,j 7,j 1,j 2,j 8,j 6]
@@ -346,11 +381,14 @@ blanksTest = blanks (chop (oneNum example (0,2) 1))
 candidate' :: Sudoku -> [Pos] -> [Solution]
 candidate' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]     -- 1. success
                       | null everyOneNum      = []                           -- 2. failure
---               || null (candidate' oNR) = []                 -- 4. failure
+--                      | null (candidate' oNR) = []                 -- 4. failure
+                      | null ps   = chopList' (map eONH numbers)               -- last level
                       | otherwise = concatMap oRC everyOneNum        -- 3. ok, downwards                     
     where oRC n = candidate' n ps               -- recursively call candidate' with sudoku argument n and [Pos] argument ps.
- --         oNR  = oneNum sud p 1              --
+ --         oNR  = oneNum sud p 1
+          everyOneNum :: [Sudoku]        --
           everyOneNum = chopList (map eONH numbers)    -- tries every number in next blank space and return valid solutions in list
+          --chopLast
           eONH i = dOneNum sud p i            -- try i in the next blank space. May return Nothing
           numbers = [1,2,3,4,5,6,7,8,9]
           

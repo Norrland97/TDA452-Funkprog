@@ -2,8 +2,7 @@ module Sudoku where
 
 import Test.QuickCheck
 import Data.List ((\\),  genericLength, nub,transpose, splitAt)
-import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing)
-import Maybes (isJust)
+import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing,isJust)
 
 ------------------------------------------------------------------------------
 

@@ -2,7 +2,7 @@ module Sudoku where
 
 import Test.QuickCheck
 import Data.List ( genericLength, nub,transpose, splitAt)
-import Data.Maybe (catMaybes, isNothing)
+import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing)
 
 ------------------------------------------------------------------------------
 
@@ -54,7 +54,7 @@ example' =
 example'' :: Sudoku
 example'' =
     Sudoku
-      [ [n  ,j 6,j 8,j 1,j 3,j 5,j 2,j 4,j 7]
+      [ [j 9,j 6,j 8,j 1,j 3,j 5,j 2,j 4,j 7]
       , [j 1,j 3,j 7,j 8,j 4,j 2,j 9,j 5,j 6]
       , [j 4,j 2,j 5,j 9,j 6,j 7,j 3,j 8,j 1]
       , [j 7,j 8,j 2,j 6,j 1,j 3,j 4,j 9,j 5]
@@ -294,8 +294,8 @@ prop_blanks_allBlanks = length (blanks allBlankSudoku) == 9*9
 
 -- replaces the index of a list with a given element
 (!!=) :: [a] -> (Int,a) -> [a]
-l@(x:xs) !!= (i,y) | i < 0                                         -- error "Can not operate in negative index"
-                   || i > (length l-2) = l                            -- error ("Index " ++ (show i) ++ "out of bounds")
+l@(x:xs) !!= (i,y) | i < 0                                        
+                   || i > (length l-1) = l                            
                    | i == 0            = y : xs 
                    | otherwise         = x : (xs !!= (i-1, y))
 
@@ -320,6 +320,8 @@ update (Sudoku rs) pos c = Sudoku (updateMatrix rs pos c)
 
 --Helperfunction for update, updates a table at a given position with a given cell
 updateMatrix :: [Row] -> Pos -> Cell -> [Row]
+updateMatrix (r:[]) (row, col) ce | row == 0  = [r !!= (col, ce)]
+                                  | otherwise = [r]
 updateMatrix (r:rs) (row, col) ce | row == 0  = r !!= (col, ce) : rs
                                   | otherwise = r : updateMatrix rs (row-1, col) ce
 
@@ -333,112 +335,55 @@ prop_update_updated sud p@(row, col) c = sudRows (update sud p c) !! row !! col 
 type Solution = Maybe Sudoku
 
 -- * F1
+-- solves a Sudoku. Returns a Solution, see above
 solve :: Sudoku -> Solution
-solve s | not (isSudoku s)       = Nothing
-        | isOkay s && isFilled s = Just s
-        | not (isOkay s)         = Nothing
-        | otherwise              = head (candidate' s (blanks s))
-      -- || null (candidate' (Just s) (blanks s))         = Nothing
-       
-   -- where solution = candidate' (Just s) (blanks s)
-
+solve s | not (isSudoku s)       = Nothing                                  -- if argument Sudoku is not valid, a.k.a. 9*9, return Nothing
+        | isOkay s && isFilled s = Just s                                   -- if the Sudoku is already solved, return a Solution of this s
+        | not (isOkay s)         = Nothing                                  -- if the Sudoku is incorrectly filled in there are no Solutions, return Nothing
+        | otherwise              = head (solve' s (blanks s))               -- lazy evaluation: solve' is a massive calculation of all solutions, 
+                                                                            -- it works because we only ask for the first Solution
+-- helper function for the solve function. with recursive calls tihs uptades the positions to possible values and returns a list of all possible solutions if there are any
 solve' :: Sudoku -> [Pos] -> [Solution]
-solve' s (b:bs) | null oneDown = []
-                | null bs      = [oneDown]
-                | otherwise    = nextPos oneDown
-    where oneDown          = oneNum s b 1
-          nextPos (Just sudoku) = solve' sudoku bs
-{-}
-solve'' :: Sudoku -> [Pos] -> Cell -> [Solution]
-solve'' sud (p:ps) usedCell | isNothing usedCell= undefined
-                            | isNothing  newSud = []
-                            | otherwise         = (solve'' newSud ps usedCell) ++ (solve'' (p:ps) (newCell newSud))
-        where newSud              = oneNum sud p ((Just usedCell)+1)
-              newCell (Sudoku rs) = rs !! (fst p) !! (snd p)
--}
-
---solve'' :: Sudoku -> [Pos] -> [Solution]
---solve'' s (a:b:c) | null oneDown = []
---                  |          
---    where oneDown          = oneNum s b 1   
-
---root s (p:pos) = 
-    
-candidate :: Solution -> [Solution]
-candidate sud  | isFilled (chop sud) && isOkay (chop sud) = [sud]          -- 1. success
-               | null oNR = []                                             -- 2. failure
---               | null (candidate oNR) = []                                 -- 4. failure
-               | otherwise = concatMap candidate (chopList' everyOneNum)   -- 3. ok, downwards                     
-    where s:_ = blanks (chop sud)
-          oNR  = oneNum (chop sud) s 1              --
-          everyOneNum = map eONH numbers             -- tries every number in next blank space and return valid solutions in list
-          eONH i = dOneNum (chop sud) s i            -- try i in the next blank space. May return Nothing
-          numbers = [1,2,3,4,5,6,7,8,9]
-
-blanksTest :: [Pos]
-blanksTest = blanks (chop (oneNum example (0,2) 1))
-
-
-candidate' :: Sudoku -> [Pos] -> [Solution]
-candidate' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]     -- 1. success
-                      | null everyOneNum      = []                           -- 2. failure
---                      | null (candidate' oNR) = []                 -- 4. failure
-                      | null ps   = chopList' (map eONH numbers)               -- last level
-                      | otherwise = concatMap oRC everyOneNum        -- 3. ok, downwards                     
-    where oRC n = candidate' n ps               -- recursively call candidate' with sudoku argument n and [Pos] argument ps.
- --         oNR  = oneNum sud p 1
-          everyOneNum :: [Sudoku]        --
-          everyOneNum = chopList (map eONH numbers)    -- tries every number in next blank space and return valid solutions in list
-          --chopLast
-          eONH i = dOneNum sud p i            -- try i in the next blank space. May return Nothing
-          numbers = [1,2,3,4,5,6,7,8,9]
-          
-          {-}
-
-          candidate :: Solution -> [Solution]
-candidate sud  | isFilled sud && isOkay sud = [Just sud]     -- 1. success
-               | null oNR = []                                   -- 2. failure
-               | null (candidate (chop oNR)) = []                 -- 4. failure
-               | otherwise = concat (map candidate everyOneNum )              -- 3. success, downwards                     
-    where s:bs = blanks sud
-          oNR  = dOneNum sud s 1
-          everyOneNum = map eONH numbers
-          eONH i = dOneNum sud s i
-          numbers = [1,2,3,4,5,6,7,8,9]
--}
-chop :: (Maybe a) -> a
-chop (Just a) = a
-
-chopList :: [Maybe a] -> [a]
-chopList ((Just i): xs) = i: (chopList xs)
-chopList (Nothing:xs) = chopList xs
+solve' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]                 -- success. Sudoku filled in correctly.
+                  | null allOptBlank      = []                              -- no options for p blank space. End recursive path
+                  | null ps   = chopList (map updateBlankIfOk nums)         -- p is now the last blankspace to be filled in
+                  | otherwise = concatMap sols allOptBlank                  -- for every available option for p blank space, drop down and recursively try with next blank space                    
+    where 
+          sols :: Sudoku -> [Solution]                                      -- recursively call solve' with sudoku argument n and [Pos] argument ps.
+          sols n = solve' n ps               
+          allOptBlank :: [Sudoku]                                           -- tries every number in next blank space and return valid solutions in list
+          allOptBlank = mapMaybe updateBlankIfOk nums                       
+          updateBlankIfOk :: Int -> Solution                                -- try i in the next blank space. May return Nothing
+          updateBlankIfOk i = tryUpdate sud p i                        
+          nums = [1..9]
+        
+-- Removes 'Nothing' elements from list
+chopList :: [Maybe a] -> [Maybe a]
+chopList ((Just i): xs) = Just i:chopList xs
+chopList (Nothing:xs)   = chopList xs
 chopList x = []
 
-chopList' :: [Maybe a] -> [Maybe a]
-chopList' ((Just i): xs) = (Just i): (chopList' xs)
-chopList' (Nothing:xs) = chopList' xs
-chopList' x = []
-
-        
--- Changes the given position in the table to a non-conflicting number, starting from int
-oneNum :: Sudoku -> Pos -> Int -> Solution
-oneNum oldSud pos int | isOkay newSud = Just newSud
-                      | int == 9      = Nothing
-                      | otherwise     = oneNum oldSud pos (int+1)
+--updates a given position of a sudoku with a given value if it fits. i.e. if the sudoku is valid after update. if not returns 'Nothing'
+tryUpdate :: Sudoku -> Pos -> Int -> Solution   -- try new number in position. If not okay, return Nothing
+tryUpdate oldSud pos int | isOkay newSud = Just newSud
+                         | otherwise     = Nothing
     where newSud = update oldSud pos (Just int)
-
-dOneNum :: Sudoku -> Pos -> Int -> Solution   -- try new number in position. If not okay, return Nothing
-dOneNum oldSud pos int | isOkay newSud = Just newSud
-                       | otherwise     = Nothing
-    where newSud = update oldSud pos (Just int)
-
-dOneTest :: [Solution]
-dOneTest = map (dOneNum example (0,2)) [1,2,3,4,5,6,7,8,9] 
 
 -- * F2
 
+--Solves and prints the given sudoku
+readAndSolve :: FilePath -> IO ()
+readAndSolve path = do 
+                      sud <- readSudoku path
+                      printSudoku $ fromJust (solve sud)
 
 -- * F3
-
+-- checks if Sudoku argument sol solves Sudoku argument sud
+isSolutionOf :: Sudoku -> Sudoku -> Bool
+isSolutionOf sol sud = isOkay sol
+                    && isFilled sol
+                    && Just sol == solve sud
 
 -- * F4
+prop_SolveSound :: Sudoku -> Property
+prop_SolveSound sud = isSolutionOf (fromJust (solve sud)) sud

@@ -1,7 +1,7 @@
 module Sudoku where
 
 import Test.QuickCheck
-import Data.List ( genericLength, nub,transpose, splitAt)
+import Data.List ((\\),  genericLength, nub,transpose, splitAt)
 import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing)
 import Maybes (isJust)
 
@@ -357,7 +357,13 @@ solve' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]                     
           allOptBlank       = mapMaybe updateBlankIfOk nums                       
           updateBlankIfOk :: Int -> Solution                                            -- try i in the next blank space. May return Nothing
           updateBlankIfOk i = tryUpdate sud p i                        
-          nums = [1..9]
+          nums = numsNotInBlock sud p
+        
+-- tests if the numbers allready exists in any of the horizontal or vertical blocks
+numsNotInBlock :: Sudoku -> Pos -> [Int]
+numsNotInBlock sud@(Sudoku rs) (r, c) = ns \\ bs 
+        where ns = [1..9] 
+              bs = catMaybes (rs !! r) ++ catMaybes (blocksCol sud !! c)
         
 -- Removes 'Nothing' elements from list
 chopList :: [Maybe a] -> [Maybe a]

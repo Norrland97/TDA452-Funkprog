@@ -342,18 +342,19 @@ solve s | not (isSudoku s)       = Nothing                                  -- i
         | not (isOkay s)         = Nothing                                  -- if the Sudoku is incorrectly filled in there are no Solutions, return Nothing
         | otherwise              = head (solve' s (blanks s))               -- lazy evaluation: solve' is a massive calculation of all solutions, 
                                                                             -- it works because we only ask for the first Solution
+
 -- helper function for the solve function. with recursive calls tihs uptades the positions to possible values and returns a list of all possible solutions if there are any
 solve' :: Sudoku -> [Pos] -> [Solution]
-solve' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]                 -- success. Sudoku filled in correctly.
-                  | null allOptBlank      = []                              -- no options for p blank space. End recursive path
-                  | null ps   = chopList (map updateBlankIfOk nums)         -- p is now the last blankspace to be filled in
-                  | otherwise = concatMap sols allOptBlank                  -- for every available option for p blank space, drop down and recursively try with next blank space                    
+solve' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]                             -- success. Sudoku filled in correctly.
+                  | null allOptBlank           = []                                     -- no options for p blank space. End recursive path
+                  | null ps                    = chopList (map updateBlankIfOk nums)    -- p is now the last blankspace to be filled in
+                  | otherwise                  = concatMap sols allOptBlank             -- for every available option for p blank space, drop down and recursively try with next blank space                    
     where 
-          sols :: Sudoku -> [Solution]                                      -- recursively call solve' with sudoku argument n and [Pos] argument ps.
-          sols n = solve' n ps               
-          allOptBlank :: [Sudoku]                                           -- tries every number in next blank space and return valid solutions in list
-          allOptBlank = mapMaybe updateBlankIfOk nums                       
-          updateBlankIfOk :: Int -> Solution                                -- try i in the next blank space. May return Nothing
+          sols :: Sudoku -> [Solution]                                                  -- recursively call solve' with sudoku argument n and [Pos] argument ps.
+          sols n            = solve' n ps               
+          allOptBlank :: [Sudoku]                                                       -- tries every number in next blank space and return valid solutions in list
+          allOptBlank       = mapMaybe updateBlankIfOk nums                       
+          updateBlankIfOk :: Int -> Solution                                            -- try i in the next blank space. May return Nothing
           updateBlankIfOk i = tryUpdate sud p i                        
           nums = [1..9]
         

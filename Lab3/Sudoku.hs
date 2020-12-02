@@ -356,14 +356,14 @@ solve' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]                     
           allOptBlank :: [Sudoku]                                                       -- tries every number in next blank space and return valid solutions in list
           allOptBlank       = mapMaybe updateBlankIfOk nums                       
           updateBlankIfOk :: Int -> Solution                                            -- try i in the next blank space. May return Nothing
-          updateBlankIfOk i = tryUpdate sud p i                        
+          updateBlankIfOk i = Just (update sud p (Just i))                          
           nums = numsNotInBlock sud p
         
 -- tests if the numbers allready exists in any of the horizontal or vertical blocks
 numsNotInBlock :: Sudoku -> Pos -> [Int]
 numsNotInBlock sud@(Sudoku rs) (r, c) = ns \\ bs 
         where ns = [1..9] 
-              bs = catMaybes (rs !! r) ++ catMaybes (blocksCol sud !! c) ++ 
+              bs = catMaybes (rs !! r) ++ catMaybes (blocksCol sud !! c) ++  catMaybes (blocksBoxS sud (r,c)) 
         
 -- Given a sudoku and a position, returns the relative 3by3 block
 blocksBoxS :: Sudoku -> Pos -> [Cell]

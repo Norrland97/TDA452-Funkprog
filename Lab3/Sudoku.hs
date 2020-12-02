@@ -348,13 +348,14 @@ solve' s (b:bs) | null oneDown = []
                 | otherwise    = nextPos oneDown
     where oneDown          = oneNum s b 1
           nextPos (Just sudoku) = solve' sudoku bs
-{-}
+
 solve'' :: Sudoku -> [Pos] -> Cell -> [Solution]
-solve'' sud (p:ps) usedCell | isNothing  newSud = []
-                            | otherwise         = (solve'' newSud ps) : (solve'' (p:ps) (newCell newSud))
+solve'' sud (p:ps) usedCell | isNothing usedCell= undefined
+                            | isNothing  newSud = []
+                            | otherwise         = (solve'' newSud ps usedCell) ++ (solve'' (p:ps) (newCell newSud))
         where newSud              = oneNum sud p ((Just usedCell)+1)
               newCell (Sudoku rs) = rs !! (fst p) !! (snd p)
--}
+
 
 --solve'' :: Sudoku -> [Pos] -> [Solution]
 --solve'' s (a:b:c) | null oneDown = []

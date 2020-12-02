@@ -364,8 +364,8 @@ numsNotInBlock sud@(Sudoku rs) (r, c) = ns \\ bs
               bs = catMaybes (rs !! r) ++ catMaybes (blocksCol sud !! c) ++ catMaybes (blocksBoxS sud (r,c))
 
 blocksBoxS :: Sudoku -> Pos -> [Cell]
-blocksBoxS (Sudoku rs) (r, c) | c >= 4 = blocksBoxS (Sudoku (map (drop 3) rs)) (r-3, c)
-                              | r >= 4 = blocksBoxS (Sudoku (drop 3 rs)) (r, c-3)
+blocksBoxS (Sudoku rs) (r, c) | c > 2 = blocksBoxS (Sudoku (map (drop 3) rs)) (r, c-3)
+                              | r > 2 = blocksBoxS (Sudoku (drop 3 rs)) (r-3, c)
                               | otherwise = concatMap (take 3) (take 3 rs)
 
 

@@ -47,12 +47,25 @@ boardSizeHard = (30, 16)
 emptyBoard :: (Int, Int) -> Board
 emptyBoard (x,y) = replicate y (replicate x Blank)
 
--- printBoard (makeBoard (mkStdGen 88) bombRateMed boardSizeMed
+{-}
+-- printBoard (makeBoard (mkStdGen 88) bombRateMed boardSizeMed)
+makeBoard :: StdGen -> Int -> (Int, Int) -> Board
+makeBoard g bombAmount size = calcNeighbourScore (snd bombs) (fst bombs)
+    where bombs = placeBombs g bombAmount (emptyBoard size)
+
+placeBombs :: StdGen -> Int -> Board -> (Board, [Pos])
+placeBombs g bombAmount b = (calcNeighbourScore bomCoord (setBoard b Bomb (sortBy ((on compare snd) <> (on compare fst)) bomCoord)), bomCoord) -- this is where x and y mixup might cause problems
+    where bomCoord :: [Pos]
+          bomCoord = calcBombCoord g bombAmount (length (head b) ,length b)
+-- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
+-}
+
 makeBoard :: StdGen -> Int -> (Int, Int) -> Board
 makeBoard g bombAmount size = placeBombs g bombAmount (emptyBoard size)
 
-placeBombs :: StdGen -> Int -> Board -> Board  
-placeBombs g bombAmount b = setBoard b Bomb (sortBy ((on compare snd) <> (on compare fst))(calcBombCoord g bombAmount (length (head b) ,length b)))  -- this is where x and y mixup might cause problems
+placeBombs :: StdGen -> Int -> Board -> Board
+placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Bomb (sortBy ((on compare snd) <> (on compare fst)) boomCord))  -- this is where x and y mixup might cause problems
+    where boomCord = calcBombCoord g bombAmount (length (head b) ,length b)
 -- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 
 
@@ -67,9 +80,11 @@ setBoard b@(r:rs) space pos@((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r 
           skewPosList ((xp,yp):pps) = (xp, yp-1):skewPosList pps
           skewPosList []            = []
 setBoard b space []                                = b
+-- might be index out of bounds above
 
 setSpaceInRow :: Row -> Space -> Int -> Row
-setSpaceInRow row sp i = (take i row) ++ [sp] ++ (drop (i+1) row )
+setSpaceInRow row sp i | i < 0     = row
+                       | otherwise = (take i row) ++ [sp] ++ (drop (i+1) row )
 
 
 --traverses the board and places numbers on the right space
@@ -81,6 +96,31 @@ fillNums b@(r:rs) = map setNs ns
         ns = undefined
 
 -}
+
+calcNeighbourScore :: [Pos] -> Board -> Board
+calcNeighbourScore ((x,y):ps) b | ps == []  = allNeighbours (x,y) (-1,-1) b           -- TODO nextNeighbours funkar inte här???
+                                | otherwise = calcNeighbourScore ps nextNeighbours
+    where nextNeighbours = allNeighbours (x,y) (-1,-1) b
+
+allNeighbours :: Pos -> Pos -> Board -> Board
+allNeighbours (x,y) (skewX, skewY) b = recurve (setBoard b successor [((x+skewX), (y+skewY))])
+    where successor' (Numeric i) = Numeric (i+1)
+          successor' Bomb        = Bomb
+          successor' _           = Numeric 1
+          successor = successor' ((b !! (y+skewY)) !! (x+skewX))
+
+          nextSkewX :: Int
+          nextSkewX | skewX == 1 && skewY == 1  = -2
+                    | skewX == 1                = -1
+                    | skewX == -1 && skewY == 0 = 1
+                    | otherwise                 = skewX + 1
+          nextSkewY :: Int
+          nextSkewY | skewX == 1                = skewY + 1
+                    | otherwise                 = skewY
+
+          recurve nB | nextSkewX == -2 = nB
+                     | otherwise       = allNeighbours (x,y) (nextSkewX, nextSkewY) nB
+
 
 -- must give new g each time, mult randomer can't return g
 -- calcBombCoord (mkStdGen <any number>) bombRateEasy boardSizeEasy

@@ -1,0 +1,29 @@
+~*Minesweeper*~
+
+Board 
+    matris
+
+Generate board
+
+type Space = Bomb | Num Int | Nothing
+
+opened Spaces = Flag | Opened | Nothing
+    matris
+    Flags matrix
+
+placeBombs
+    random function
+
+placeNums
+    go through and calcualte
+    8 neighbours   
+
+scoreCount
+    display time
+
+smilieFace              ?
+
+UI :( 
+    do it Later ;)
+
+epic sound effect       ?

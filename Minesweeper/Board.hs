@@ -1,6 +1,7 @@
 module Board where
 import System.Random
 import Data.List
+import Data.Function
 
 data Space = Bomb | Numeric Integer | Blank
     deriving (Eq, Show)
@@ -51,8 +52,8 @@ makeBoard :: StdGen -> Int -> (Int, Int) -> Board
 makeBoard g bombAmount size = placeBombs g bombAmount (emptyBoard size)
 
 placeBombs :: StdGen -> Int -> Board -> Board  
-placeBombs g bombAmount b = setBoard b Bomb (sort (calcBombCoord g bombAmount (length (head b) ,length b)))  -- this is where x and y mixup might cause problems
-
+placeBombs g bombAmount b = setBoard b Bomb (sortBy ((on compare snd) <> (on compare fst))(calcBombCoord g bombAmount (length (head b) ,length b)))  -- this is where x and y mixup might cause problems
+-- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 
 
 -- test w:  printBoard (setBoard (emptyBoard (boardSizeMed)) Bomb [(0,0), (3,3), (15,15)])

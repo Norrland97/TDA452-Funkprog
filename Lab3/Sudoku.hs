@@ -1,8 +1,8 @@
 module Sudoku where
 
 import Test.QuickCheck
-import Data.List ( genericLength, nub,transpose, splitAt)
-import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing)
+import Data.List ((\\),  genericLength, nub,transpose, splitAt)
+import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing,isJust)
 
 ------------------------------------------------------------------------------
 
@@ -355,9 +355,21 @@ solve' sud (p:ps) | isFilled sud && isOkay sud = [Just sud]                     
           allOptBlank :: [Sudoku]                                                       -- tries every number in next blank space and return valid solutions in list
           allOptBlank       = mapMaybe updateBlankIfOk nums                       
           updateBlankIfOk :: Int -> Solution                                            -- try i in the next blank space. May return Nothing
-          updateBlankIfOk i = tryUpdate sud p i                        
-          nums = [1..9]
+          updateBlankIfOk i = Just (update sud p (Just i))                          
+          nums = numsNotInBlock sud p
         
+-- tests if the numbers allready exists in any of the horizontal or vertical blocks
+numsNotInBlock :: Sudoku -> Pos -> [Int]
+numsNotInBlock sud@(Sudoku rs) (r, c) = ns \\ bs 
+        where ns = [1..9] 
+              bs = catMaybes (rs !! r) ++ catMaybes (blocksCol sud !! c) ++  catMaybes (blocksBoxS sud (r,c)) 
+        
+-- Given a sudoku and a position, returns the relative 3by3 block
+blocksBoxS :: Sudoku -> Pos -> [Cell]
+blocksBoxS (Sudoku rs) (r, c) | c > 2 = blocksBoxS (Sudoku (map (drop 3) rs)) (r, c-3)
+                              | r > 2 = blocksBoxS (Sudoku (drop 3 rs)) (r-3, c)
+                              | otherwise = concatMap (take 3) (take 3 rs)
+
 -- Removes 'Nothing' elements from list
 chopList :: [Maybe a] -> [Maybe a]
 chopList ((Just i): xs) = Just i:chopList xs
@@ -386,5 +398,15 @@ isSolutionOf sol sud = isOkay sol
                     && Just sol == solve sud
 
 -- * F4
+
+--Property for quickcheck, if the solution of a sudoku exists it compares it using isSolutionOf
 prop_SolveSound :: Sudoku -> Property
-prop_SolveSound sud = isSolutionOf (fromJust (solve sud)) sud
+prop_SolveSound sud = isJust sol ==> isSolutionOf (fromJust sol) sud
+    where sol = solve sud
+
+--Fewer checks for quickcheck
+fewerChecks :: Testable prop => prop -> IO ()
+fewerChecks = quickCheckWith stdArgs{maxSuccess=30 }
+
+-- runs the fewerChecks
+main = fewerChecks prop_SolveSound

@@ -22,6 +22,7 @@ example =  [[  b,n 1,  l,n 2,  b,n 2],
 
 posExamples :: [Pos]
 posExamples = [(1,1),(0,1),(3,4),(0,0),(0,4),(0,3),(4,4)]
+exampleRow = [Blank, Blank, Blank, Numeric 1, Bomb, Numeric 1, Blank]
 
 -- constants for amounts of bombs and board sizes for different levels of difficulty
 
@@ -45,40 +46,38 @@ boardSizeHard = (30, 16)
 emptyBoard :: (Int, Int) -> Board
 emptyBoard (x,y) = replicate y (replicate x Blank)
 
-makeBoard :: StdGen -> (Int, Int) -> Board
-makeBoard g size = placeBombs g (emptyBoard size)
+-- printBoard (makeBoard (mkStdGen 88) bombRateMed boardSizeMed
+makeBoard :: StdGen -> Int -> (Int, Int) -> Board
+makeBoard g bombAmount size = placeBombs g bombAmount (emptyBoard size)
 
-placeBombs :: StdGen -> Board -> Board  
-placeBombs g b = setBoard b Bomb (calcBombCoord g )
+placeBombs :: StdGen -> Int -> Board -> Board  
+placeBombs g bombAmount b = setBoard b Bomb (sort (calcBombCoord g bombAmount (length (head b) ,length b)))  -- this is where x and y mixup might cause problems
 
 
 
-
+-- test w:  printBoard (setBoard (emptyBoard (boardSizeMed)) Bomb [(0,0), (3,3), (15,15)])
 -- could use same strategy as setSpaceInRow. Don't know what's the best
 -- sets input space in every coord of input Board defined by input [Pos]
+-- demands [Pos] to be sorted
 setBoard :: Board -> Space -> [Pos] -> Board
-setBoard b@(r:rs) space ((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r space x):rs) space ps
-                                   | otherwise = r:setBoard rs space (skewPosList ((x,y):ps))   -- unchanged Row r glued to iteration with y-1, positions skewed with 1 
+setBoard b@(r:rs) space pos@((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r space x):rs) space ps
+                                       | otherwise = r:setBoard rs space (skewPosList ((x,y):ps))       -- unchanged Row r glued to iteration with y-1, positions skewed with 1 
     where
           skewPosList ((xp,yp):pps) = (xp, yp-1):skewPosList pps
           skewPosList []            = []
+setBoard b space []                                = b
 
 setSpaceInRow :: Row -> Space -> Int -> Row
 setSpaceInRow row sp i = (take i row) ++ [sp] ++ (drop (i+1) row )
 
 
-{-}
-setBoard :: Board -> Space -> [Pos] -> Board
-setBoard (r:rs) Bomb (x,y)      = (setRow r Bomb ):(setBoard rs Bomb)
-setBoard (r:rs) Blank (x,y)     = (setRow r Blank ):(setBoard rs Blank)
-setBoard (r:rs) (Numeric i) (x,y) = (setRow r (Numeric i )):(setBoard rs (Numeric i))
-setBoard Empty            (x,y) = []
-
-
-setRow :: Row -> Space -> Row
-setRow (Bomb : ss)       = Bomb:(setRow ss Bomb)
-setRow (Blank : ss)      = Blank:(setRow ss Blank)
-setRow ((Numeric i): ss) = (Numeric i):(setRow ss (Numeric i))
+--traverses the board and places numbers on the right space
+{-
+fillNums :: Board -> Board
+fillNums b@(r:rs) = map setNs ns
+    where 
+        setNs n = uncurry setBoard n
+        ns = undefined
 
 -}
 
@@ -86,7 +85,7 @@ setRow ((Numeric i): ss) = (Numeric i):(setRow ss (Numeric i))
 -- calcBombCoord (mkStdGen <any number>) bombRateEasy boardSizeEasy
 -- calculates coordinates for bomb placements into tuples in a list
 calcBombCoord :: StdGen -> Int -> (Int, Int) -> [Pos]
-calcBombCoord gen rate (x,y) = map numToCoord (numsOk rate (x*y) gen)  
+calcBombCoord gen rate (x,y) = map numToCoord (numsOk rate (x*y-1) gen)  
     where 
           -- converts a number to a Pos
           numToCoord :: Int -> Pos

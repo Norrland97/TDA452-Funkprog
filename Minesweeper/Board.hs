@@ -20,6 +20,8 @@ example =  [[  b,n 1,  l,n 2,  b,n 2],
           b = Bomb
           l = Blank
 
+posExamples :: [Pos]
+posExamples = [(1,1),(0,1),(3,4),(0,0),(0,4),(0,3),(4,4)]
 
 -- constants for amounts of bombs and board sizes for different levels of difficulty
 

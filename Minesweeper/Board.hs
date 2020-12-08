@@ -43,11 +43,42 @@ boardSizeHard = (30, 16)
 emptyBoard :: (Int, Int) -> Board
 emptyBoard (x,y) = replicate y (replicate x Blank)
 
-makeBoard :: (Int, Int) -> Board
-makeBoard size =undefined --placeBombs (emptyBoard size)
+makeBoard :: StdGen -> (Int, Int) -> Board
+makeBoard g size = placeBombs g (emptyBoard size)
 
 placeBombs :: StdGen -> Board -> Board  
-placeBombs g (r:rs) = undefined
+placeBombs g b = setBoard b Bomb (calcBombCoord g )
+
+
+
+
+-- could use same strategy as setSpaceInRow. Don't know what's the best
+-- sets input space in every coord of input Board defined by input [Pos]
+setBoard :: Board -> Space -> [Pos] -> Board
+setBoard b@(r:rs) space ((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r space x):rs) space ps
+                                   | otherwise = r:setBoard rs space (skewPosList ((x,y):ps))   -- unchanged Row r glued to iteration with y-1, positions skewed with 1 
+    where
+          skewPosList ((xp,yp):pps) = (xp, yp-1):skewPosList pps
+          skewPosList []            = []
+
+setSpaceInRow :: Row -> Space -> Int -> Row
+setSpaceInRow row sp i = (take i row) ++ [sp] ++ (drop (i+1) row )
+
+
+{-}
+setBoard :: Board -> Space -> [Pos] -> Board
+setBoard (r:rs) Bomb (x,y)      = (setRow r Bomb ):(setBoard rs Bomb)
+setBoard (r:rs) Blank (x,y)     = (setRow r Blank ):(setBoard rs Blank)
+setBoard (r:rs) (Numeric i) (x,y) = (setRow r (Numeric i )):(setBoard rs (Numeric i))
+setBoard Empty            (x,y) = []
+
+
+setRow :: Row -> Space -> Row
+setRow (Bomb : ss)       = Bomb:(setRow ss Bomb)
+setRow (Blank : ss)      = Blank:(setRow ss Blank)
+setRow ((Numeric i): ss) = (Numeric i):(setRow ss (Numeric i))
+
+-}
 
 -- must give new g each time, mult randomer can't return g
 -- calcBombCoord (mkStdGen <any number>) bombRateEasy boardSizeEasy
@@ -60,14 +91,12 @@ calcBombCoord gen rate (x,y) = map numToCoord (numsOk rate (x*y) gen)
           numToCoord n                         = (mod n y, div n y)
 
           
-
--- general helpers
+-- general helpers -----------------------------------------------------------------------
 -- numsOk bombRateEasy (boardLength*boardHeight) (mkStdGen <any number>) 
-
+-- gives a <rate> length list with non-duplicated Ints in the span [0, <roof>]
 numsOk :: Int -> Int -> StdGen -> [Int]
 numsOk rate roof g = numsOk' rate roof (nums rate roof g) g
 
--- gives a <rate> length list with non-duplicated Ints in the span [0, <roof>]
 numsOk' :: Int -> Int -> [Int] -> StdGen -> [Int]
 numsOk' rate roof oldList g3 | length nL == rate = nL
                              | otherwise         = numsOk' rate roof (numsNoDup nL g3) (snd (updStdGen g3))

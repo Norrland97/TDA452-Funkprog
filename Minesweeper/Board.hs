@@ -3,8 +3,17 @@ import System.Random
 import Data.List
 import Data.Function
 
-data Space = Bomb | Numeric Integer | Blank
+-- | Change to a Space being an iten and having a state, hidden showing or flagged
+data Item  = Bomb | Numeric Integer | Blank
     deriving (Eq, Show)
+
+data State = Hidden | Showing | Flagged
+    deriving (Eq, Show)
+
+data Space = Space {item :: Item, state :: State}
+    deriving (Eq, Show)
+
+
 
 type Row = [Space]
 
@@ -18,9 +27,20 @@ example =  [[  b,n 1,  l,n 2,  b,n 2],
             [n 1,n 1,n 2,  b,n 2,n 1],
             [n 1,  b,n 3,n 2,n 2,n 1],
             [n 1,n 2,  b,n 1,n 1, b]]
-    where n = Numeric
-          b = Bomb
-          l = Blank
+    where n i = Space (Numeric i) Showing
+          b = Space Bomb Showing
+          l = Space Blank Showing
+
+example' =  [[  h,h,  l,n 2,  b,n 2],
+            [h,h,  l,n 3,  b,n 2],
+            [h,h,n 2,h,n 2,n 1],
+            [n 1,  b,n 3,n 2,n 2,n 1],
+            [n 1,n 2,  b,n 1,n 1, b]]
+    where n i = Space (Numeric i) Showing
+          b = Space Bomb Showing
+          l = Space Blank Showing
+          h = Space Blank Hidden
+
 
 posExamples :: [Pos]
 posExamples = [(1,1),(0,1),(3,4),(0,0),(0,4),(0,3),(4,4)]
@@ -209,7 +229,8 @@ typeSpace Blank       = Blank
 -- evaluation a Space in gameplay
 
 isMined :: Space -> Bool
-isMined s = s == Bomb
+isMined Space{item=Bomb} = True
+isMined _ = False
 
 revealSpace :: Board -> (Int, Int) -> Space
 revealSpace b (x,y) = typeSpace ((b !! y) !! x)
@@ -226,7 +247,9 @@ rowsToString = map rowToSpace
 
 -- helper function which converts a Cell to a String representation
 showSpace :: Space -> String
-showSpace Blank       = "_"
-showSpace (Numeric i) = show i
-showSpace Bomb        = "*"
+showSpace Space{state = Hidden}   = "O"
+showSpace Space{state = Flagged}  = "F"
+showSpace Space{item = Blank}     = "_"
+showSpace Space{item = Numeric i} = show i
+showSpace Space{item = Bomb}      = "*"
 

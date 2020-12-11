@@ -65,7 +65,7 @@ boardSizeHard = (30, 16)
 -- construction of a new Board
 
 emptyBoard :: (Int, Int) -> Board
-emptyBoard (x,y) = replicate y (replicate x Blank)
+emptyBoard (x,y) = replicate y (replicate x (Space Blank Showing))
 
 {-}
 -- printBoard (makeBoard (mkStdGen 88) bombRateMed boardSizeMed)
@@ -84,7 +84,7 @@ makeBoard :: StdGen -> Int -> (Int, Int) -> Board
 makeBoard g bombAmount size = placeBombs g bombAmount (emptyBoard size)
 
 placeBombs :: StdGen -> Int -> Board -> Board
-placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Bomb (sortBy ((on compare snd) <> (on compare fst)) boomCord))  -- this is where x and y mixup might cause problems
+placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Space{item=Bomb, state=Hidden} (sortBy ((on compare snd) <> (on compare fst)) boomCord))  -- this is where x and y mixup might cause problems
     where boomCord = calcBombCoord g bombAmount (length (head b) ,length b)
 -- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 
@@ -180,20 +180,9 @@ nums amount roof g = take amount (randomRs (0, roof) g)
 
 -- space helpers
 
--- unnecessary?
-typeSpace :: Space -> Space
-typeSpace Bomb        = Bomb
-typeSpace (Numeric i) = Numeric i
-typeSpace Blank       = Blank
-
 -- evaluation a Space in gameplay
-
-isMined :: Space -> Bool
-isMined Space{item=Bomb} = True
-isMined _ = False
-
 revealSpace :: Board -> (Int, Int) -> Space
-revealSpace b (x,y) = typeSpace ((b !! y) !! x)
+revealSpace b (x,y) = Space (item ((b !! y) !! x)) Showing
     
 --prints the board
 printBoard :: Board -> IO()

@@ -270,21 +270,10 @@ isOkay sudoku = all isOkayBlock (blocks sudoku)
 type Pos = (Int,Int)
 
 -- * E1
---Returns all the coordinates of the blanks in the sudoku, starting from top left and starting with the first row
+--Returns all the coordinates of the blanks in the sudoku, starting from first row and first column
 blanks :: Sudoku -> [Pos]
-blanks (Sudoku []) = []
-blanks (Sudoku rs) = concatMap blanksHelper indexdRs
-    where 
-        indexdRs    = zipWith (curry indexAll) [0..(length rs - 1)] rs
-        indexAll as = zip [(fst as,b) | b<- [0..(length (snd as) - 1)]] (snd as)
+blanks (Sudoku ss) = [(row, col) |  row <- [0..8], col <- [0..8], isNothing ((ss !! row )!! col)]
          
-
---Checks the given row for 'Nothing' values of the cell and returns the coordinates 
-blanksHelper :: [((Int,Int), Cell)] -> [(Int, Int)]
-blanksHelper (d:[]) | isNothing (snd d) = [fst d] -- feels like there is a smarter way of catching the last element of the list
-                    | otherwise         = []
-blanksHelper (d:ds) | isNothing (snd d) = fst d:blanksHelper ds
-                    | otherwise         = blanksHelper ds
 
 -- checks if the ammount of positions where there are blanks is as many as the expected number in the 'allBlankSudoku' (works with nub on the list aswell)
 prop_blanks_allBlanks :: Bool
@@ -317,8 +306,8 @@ update (Sudoku rs) pos c = Sudoku (rs !!= (fst pos, newR))
 
 -- tests if the given positions of a sudoku will change with the given cell
 prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
-prop_update_updated sud p@(row, col) c = sudRows (update sud p c) !! row !! col == c --(updateMatrix s (row, col) c !! row) !! col == c
-            where sudRows (Sudoku rs) = rs
+prop_update_updated sud p@(row, col) c = rows (update sud p c) !! row !! col == c --(updateMatrix s (row, col) c !! row) !! col == c
+
 
 ------------------------------------------------------------------------------
 
@@ -385,9 +374,9 @@ readAndSolve path = do
 -- checks if Sudoku argument sol solves Sudoku argument sud
 isSolutionOf :: Sudoku -> Sudoku -> Bool
 isSolutionOf sol@(Sudoku sols) sud@(Sudoku suds) = isOkay sol && isOkay sud 
-                    && ((map (getPos nonBs) sols) isSuffixOf (map getPos nonBs suds))
-          where nonBs = blanks allBlankSudoku \\ blanks sud
-                getPos p as = as !! snd p
+                    && all posEq nonBs
+          where nonBs = blanks allBlankSudoku \\ blanks sud 
+                posEq p = ((sols !! fst p) !! snd p) == ((suds !! fst p) !! snd p)
 
 -- * F4
 

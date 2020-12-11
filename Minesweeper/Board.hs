@@ -80,11 +80,13 @@ setBoard b@(r:rs) space pos@((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r 
           skewPosList ((xp,yp):pps) = (xp, yp-1):skewPosList pps
           skewPosList []            = []
 setBoard b space []                                = b
+setBoard --non-exhaustive, fix
 -- might be index out of bounds above
 
 setSpaceInRow :: Row -> Space -> Int -> Row
-setSpaceInRow row sp i | i < 0     = row
-                       | otherwise = (take i row) ++ [sp] ++ (drop (i+1) row )
+setSpaceInRow row sp i | i < 0 
+                      || i > (length row) = row
+                       | otherwise        = (take i row) ++ [sp] ++ (drop (i+1) row )
 
 
 --traverses the board and places numbers on the right space
@@ -103,11 +105,11 @@ calcNeighbourScore ((x,y):ps) b | ps == []  = allNeighbours (x,y) (-1,-1) b     
     where nextNeighbours = allNeighbours (x,y) (-1,-1) b
 
 allNeighbours :: Pos -> Pos -> Board -> Board
-allNeighbours (x,y) (skewX, skewY) b = recurve (setBoard b successor [((x+skewX), (y+skewY))])
+allNeighbours (x,y) (skewX, skewY) b = recurve (setBoard b successor [((x + skewX), (y + skewY))])
     where successor' (Numeric i) = Numeric (i+1)
           successor' Bomb        = Bomb
           successor' _           = Numeric 1
-          successor = successor' ((b !! (y+skewY)) !! (x+skewX))
+          successor = successor' ((b !! okSkewY) !! (okSkewX))
 
           nextSkewX :: Int
           nextSkewX | skewX == 1 && skewY == 1  = -2
@@ -118,6 +120,12 @@ allNeighbours (x,y) (skewX, skewY) b = recurve (setBoard b successor [((x+skewX)
           nextSkewY | skewX == 1                = skewY + 1
                     | otherwise                 = skewY
 
+          okSkewX | x + skewX > (length (head b)) = (length (head b))                            -- this is dumb, these result doesn't matter
+                  | x + skewX < 0                 = 0
+                  | otherwise                     = x + skewX
+          okSkewY | y + skewY > (length b)        = length b
+                  | y + skewY < 0                 = 0
+                  | otherwise                     = y + skewY
           recurve nB | nextSkewX == -2 = nB
                      | otherwise       = allNeighbours (x,y) (nextSkewX, nextSkewY) nB
 

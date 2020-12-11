@@ -301,13 +301,16 @@ prop_bangBangEquals_correct s p@(i, c) | i > length s -1
 
 --Updates the soduku at the given position with the given cell
 update :: Sudoku -> Pos -> Cell -> Sudoku
+update sud (r, c) _ | r < 0 || c < 0
+                    || r > 8 || c > 8 = sud 
 update (Sudoku rs) pos c = Sudoku (rs !!= (fst pos, newR))
           where newR = (rs !! fst pos) !!= (snd pos,c)
 
 -- tests if the given positions of a sudoku will change with the given cell
-prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
-prop_update_updated sud p@(row, col) c = rows (update sud p c) !! row !! col == c --(updateMatrix s (row, col) c !! row) !! col == c
-
+prop_update_updated :: Sudoku -> Pos -> Cell -> Property 
+prop_update_updated sud (row, col) c = abs row < 9 && abs col < 9 ==> pos (update sud p c) == c --(updateMatrix s (row, col) c !! row) !! col == c
+          where p = (abs row, abs col)
+                pos s = rows s !! abs row !! abs col
 
 ------------------------------------------------------------------------------
 
@@ -374,7 +377,7 @@ readAndSolve path = do
 -- checks if Sudoku argument sol solves Sudoku argument sud
 isSolutionOf :: Sudoku -> Sudoku -> Bool
 isSolutionOf sol@(Sudoku sols) sud@(Sudoku suds) = isOkay sol && isOkay sud 
-                    && all posEq nonBs
+                    && all posEq nonBs && null (blanks sol)
           where nonBs = blanks allBlankSudoku \\ blanks sud 
                 posEq p = ((sols !! fst p) !! snd p) == ((suds !! fst p) !! snd p)
 

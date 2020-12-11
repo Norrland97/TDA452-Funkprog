@@ -8,8 +8,15 @@ type Views = [Pos]
 
 type Flaggs = [Pos]
 
-main =  undefined
-{-}
+main = gameLoop example []
+
+{-gameInit :: IO()
+gameInit | bs 
+    where bS = do 
+            s <- getLine
+            let 
+-}
+
 gameLoop :: Board -> Views -> IO()
 gameLoop b vs    | win  = showWin
                  | lose = showLose
@@ -18,12 +25,12 @@ gameLoop b vs    | win  = showWin
                 s <- getLine
                 gameLoop b (vs ++ [toPos s])
     where 
-        win  = False
+        win  = True
         lose = False
-        showWin  = putStr "Win!"
-        showLose = putStr "Lose!"
-        showView = printView b vs
--}
+        showWin  = putStr "Win!" -- showView somhow
+        showLose = putStr "Lose!" -- show bombs sortof
+        showView = printBoard b
+
 
 --prints the coordnates from the board that has been selected
 {-}

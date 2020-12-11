@@ -3,8 +3,17 @@ import System.Random
 import Data.List
 import Data.Function
 
-data Space = Bomb | Numeric Integer | Blank
+-- | Change to a Space being an iten and having a state, hidden showing or flagged
+data Item  = Bomb | Numeric Integer | Blank
     deriving (Eq, Show)
+
+data State = Hidden | Showing | Flagged
+    deriving (Eq, Show)
+
+data Space = Space {item :: Item, state :: State}
+    deriving (Eq, Show)
+
+
 
 type Row = [Space]
 
@@ -18,9 +27,20 @@ example =  [[  b,n 1,  l,n 2,  b,n 2],
             [n 1,n 1,n 2,  b,n 2,n 1],
             [n 1,  b,n 3,n 2,n 2,n 1],
             [n 1,n 2,  b,n 1,n 1, b]]
-    where n = Numeric
-          b = Bomb
-          l = Blank
+    where n i = Space (Numeric i) Showing
+          b = Space Bomb Showing
+          l = Space Blank Showing
+
+example' =  [[  h,h,  l,n 2,  b,n 2],
+            [h,h,  l,n 3,  b,n 2],
+            [h,h,n 2,h,n 2,n 1],
+            [n 1,  b,n 3,n 2,n 2,n 1],
+            [n 1,n 2,  b,n 1,n 1, b]]
+    where n i = Space (Numeric i) Showing
+          b = Space Bomb Showing
+          l = Space Blank Showing
+          h = Space Blank Hidden
+
 
 posExamples :: [Pos]
 posExamples = [(1,1),(0,1),(3,4),(0,0),(0,4),(0,3),(4,4)]
@@ -46,7 +66,7 @@ boardSizeHard = (30, 16)
 -- construction of a new Board
 
 emptyBoard :: (Int, Int) -> Board
-emptyBoard (x,y) = replicate y (replicate x Blank)
+emptyBoard (x,y) = replicate y (replicate x (Space Blank Showing))
 
 {-}
 -- printBoard (makeBoard (mkStdGen 88) bombRateMed boardSizeMed)
@@ -65,7 +85,7 @@ makeBoard :: StdGen -> Int -> (Int, Int) -> Board
 makeBoard g bombAmount size = placeBombs g bombAmount (emptyBoard size)
 
 placeBombs :: StdGen -> Int -> Board -> Board
-placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Bomb (sortBy ((on compare snd) <> (on compare fst)) boomCord))  -- this is where x and y mixup might cause problems
+placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Space{item=Bomb, state=Hidden} (sortBy ((on compare snd) <> (on compare fst)) boomCord))  -- this is where x and y mixup might cause problems
     where boomCord = calcBombCoord g bombAmount (length (head b) ,length b)
 -- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 
@@ -200,19 +220,9 @@ nums amount roof g = take amount (randomRs (0, roof) g)
 
 -- space helpers
 
--- unnecessary?
-typeSpace :: Space -> Space
-typeSpace Bomb        = Bomb
-typeSpace (Numeric i) = Numeric i
-typeSpace Blank       = Blank
-
 -- evaluation a Space in gameplay
-
-isMined :: Space -> Bool
-isMined s = s == Bomb
-
 revealSpace :: Board -> (Int, Int) -> Space
-revealSpace b (x,y) = typeSpace ((b !! y) !! x)
+revealSpace b (x,y) = Space (item ((b !! y) !! x)) Showing
     
 --prints the board
 printBoard :: Board -> IO()
@@ -226,7 +236,9 @@ rowsToString = map rowToSpace
 
 -- helper function which converts a Cell to a String representation
 showSpace :: Space -> String
-showSpace Blank       = "_"
-showSpace (Numeric i) = show i
-showSpace Bomb        = "*"
+showSpace Space{state = Hidden}   = "O"
+showSpace Space{state = Flagged}  = "F"
+showSpace Space{item = Blank}     = "_"
+showSpace Space{item = Numeric i} = show i
+showSpace Space{item = Bomb}      = "*"
 

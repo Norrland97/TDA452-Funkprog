@@ -10,6 +10,7 @@ type Row = [Space]
 
 type Board = [Row]
 
+-- (row, col)
 type Pos = (Int,Int)
 
 example =  [[  b,n 1,  l,n 2,  b,n 2],
@@ -80,7 +81,7 @@ setBoard b@(r:rs) space pos@((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r 
           skewPosList ((xp,yp):pps) = (xp, yp-1):skewPosList pps
           skewPosList []            = []
 setBoard b space []                                = b
-setBoard --non-exhaustive, fix
+--setBoard --non-exhaustive, fix
 -- might be index out of bounds above
 
 setSpaceInRow :: Row -> Space -> Int -> Row
@@ -104,6 +105,36 @@ calcNeighbourScore ((x,y):ps) b | ps == []  = allNeighbours (x,y) (-1,-1) b     
                                 | otherwise = calcNeighbourScore ps nextNeighbours
     where nextNeighbours = allNeighbours (x,y) (-1,-1) b
 
+-- bombPos, (-1,-1), board
+allNeighbours :: Pos -> Pos -> Board -> Board
+allNeighbours (row,sp) (skewRow, skewSp) b = recurve (setBoard b successor [((row + skewRow), (sp + skewSp))])
+    where successor' (Numeric i) = Numeric (i+1)
+          successor' Bomb        = Bomb
+          successor' _           = Numeric 1
+          successor = successor' ((b !! okSkewSp) !! (okSkewRow))
+
+          nextSkewRow :: Int
+          nextSkewRow | skewSp == 1 && skewRow == 1  = -2
+                      | skewSp == 1                = -1
+                      | skewSp == -1 && skewRow == 0 = 1
+                      | otherwise                 = skewRow + 1
+          nextSkewSp :: Int
+          nextSkewSp | skewSp == 1                = skewSp + 1
+                     | otherwise                 = skewSp
+
+          okSkewRow | row + skewRow > (length (head b)) = (length (head b))                            -- this is dumb, these result doesn't matter
+                    | row + skewRow < 0         = 0
+                    | otherwise                 = row + skewRow
+          okSkewSp | sp + skewSp > (length b) = length b
+                   | sp + skewSp < 0                 = 0
+                   | otherwise                       = sp + skewSp
+          recurve nB | nextSkewRow == -2 = nB
+                     | otherwise         = allNeighbours (row,sp) (nextSkewRow, nextSkewSp) nB
+
+
+
+
+{-}
 allNeighbours :: Pos -> Pos -> Board -> Board
 allNeighbours (x,y) (skewX, skewY) b = recurve (setBoard b successor [((x + skewX), (y + skewY))])
     where successor' (Numeric i) = Numeric (i+1)
@@ -128,7 +159,7 @@ allNeighbours (x,y) (skewX, skewY) b = recurve (setBoard b successor [((x + skew
                   | otherwise                     = y + skewY
           recurve nB | nextSkewX == -2 = nB
                      | otherwise       = allNeighbours (x,y) (nextSkewX, nextSkewY) nB
-
+-}
 
 -- must give new g each time, mult randomer can't return g
 -- calcBombCoord (mkStdGen <any number>) bombRateEasy boardSizeEasy

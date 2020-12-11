@@ -1,7 +1,7 @@
 module Sudoku where
 
 import Test.QuickCheck
-import Data.List ((\\),  genericLength, nub,transpose, splitAt)
+import Data.List ((\\),  genericLength, nub,transpose, splitAt, isSuffixOf)
 import Data.Maybe (fromJust, mapMaybe, catMaybes, isNothing,isJust)
 
 ------------------------------------------------------------------------------
@@ -270,21 +270,10 @@ isOkay sudoku = all isOkayBlock (blocks sudoku)
 type Pos = (Int,Int)
 
 -- * E1
---Returns all the coordinates of the blanks in the sudoku, starting from top left and starting with the first row
+--Returns all the coordinates of the blanks in the sudoku, starting from first row and first column
 blanks :: Sudoku -> [Pos]
-blanks (Sudoku []) = []
-blanks (Sudoku rs) = concatMap blanksHelper indexdRs
-    where 
-        indexdRs    = zipWith (curry indexAll) [0..(length rs - 1)] rs
-        indexAll as = zip [(fst as,b) | b<- [0..(length (snd as) - 1)]] (snd as)
+blanks (Sudoku ss) = [(row, col) |  row <- [0..8], col <- [0..8], isNothing ((ss !! row )!! col)]
          
-
---Checks the given row for 'Nothing' values of the cell and returns the coordinates 
-blanksHelper :: [((Int,Int), Cell)] -> [(Int, Int)]
-blanksHelper (d:[]) | isNothing (snd d) = [fst d] -- feels like there is a smarter way of catching the last element of the list
-                    | otherwise         = []
-blanksHelper (d:ds) | isNothing (snd d) = fst d:blanksHelper ds
-                    | otherwise         = blanksHelper ds
 
 -- checks if the ammount of positions where there are blanks is as many as the expected number in the 'allBlankSudoku' (works with nub on the list aswell)
 prop_blanks_allBlanks :: Bool
@@ -294,41 +283,31 @@ prop_blanks_allBlanks = length (blanks allBlankSudoku) == 9*9
 
 -- replaces the index of a list with a given element
 (!!=) :: [a] -> (Int,a) -> [a]
+[] !!= _ = []
+l@(x:[]) !!= (i,y) | i == 0    = [y]                           
+                   | otherwise = l
 l@(x:xs) !!= (i,y) | i < 0                                        
                    || i > (length l-1) = l                            
                    | i == 0            = y : xs 
                    | otherwise         = x : (xs !!= (i-1, y))
 
 -- Checks if !!= works for some values
-prop_bangBangEquals_correct :: Bool
-prop_bangBangEquals_correct = replicate 9 Nothing !!= (2, Just 8)  == [n  ,n  ,j 8,n  ,n  ,n  ,n  ,n  ,n  ]
-                           && replicate 9 Nothing !!= (11, Just 8) == [n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ]
-                           && replicate 9 Nothing !!= (-4, Just 8) == [n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ,n  ]
-                           && exampleRow          !!= (2, Just 3)  == [j 3,j 6,j 3,j 8,j 7,j 1,j 2,j 8,j 6]
-                           && exampleRow          !!= (28, Just 3) == [j 3,j 6,j 8,j 8,j 7,j 1,j 2,j 8,j 6]
-                           && exampleRow          !!= (-3, Just 3) == [j 3,j 6,j 8,j 8,j 7,j 1,j 2,j 8,j 6]
-                           && exampleRow          !!= (2, Nothing) == [j 3,j 6,n  ,j 8,j 7,j 1,j 2,j 8,j 6]
-    where n = Nothing
-          j = Just
-
+prop_bangBangEquals_correct :: String -> (Int, Char) -> Bool
+prop_bangBangEquals_correct s p@(i, c) | i > length s -1 
+                                       || i < 0     = (s !!= p) == s
+                                       | otherwise  = ((s !!= p) !! i) == c 
 
 -- * E3
 
 --Updates the soduku at the given position with the given cell
 update :: Sudoku -> Pos -> Cell -> Sudoku
-update (Sudoku rs) pos c = Sudoku (updateMatrix rs pos c)
-
---Helperfunction for update, updates a table at a given position with a given cell
-updateMatrix :: [Row] -> Pos -> Cell -> [Row]
-updateMatrix (r:[]) (row, col) ce | row == 0  = [r !!= (col, ce)]
-                                  | otherwise = [r]
-updateMatrix (r:rs) (row, col) ce | row == 0  = r !!= (col, ce) : rs
-                                  | otherwise = r : updateMatrix rs (row-1, col) ce
+update (Sudoku rs) pos c = Sudoku (rs !!= (fst pos, newR))
+          where newR = (rs !! fst pos) !!= (snd pos,c)
 
 -- tests if the given positions of a sudoku will change with the given cell
 prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
-prop_update_updated sud p@(row, col) c = sudRows (update sud p c) !! row !! col == c --(updateMatrix s (row, col) c !! row) !! col == c
-            where sudRows (Sudoku rs) = rs
+prop_update_updated sud p@(row, col) c = rows (update sud p c) !! row !! col == c --(updateMatrix s (row, col) c !! row) !! col == c
+
 
 ------------------------------------------------------------------------------
 
@@ -388,14 +367,16 @@ tryUpdate oldSud pos int | isOkay newSud = Just newSud
 readAndSolve :: FilePath -> IO ()
 readAndSolve path = do 
                       sud <- readSudoku path
-                      printSudoku $ fromJust (solve sud)
+                      let solved = solve sud
+                      maybe (putStrLn "The givn sudoku is invalid") printSudoku solved
 
 -- * F3
 -- checks if Sudoku argument sol solves Sudoku argument sud
 isSolutionOf :: Sudoku -> Sudoku -> Bool
-isSolutionOf sol sud = isOkay sol
-                    && isFilled sol
-                    && Just sol == solve sud
+isSolutionOf sol@(Sudoku sols) sud@(Sudoku suds) = isOkay sol && isOkay sud 
+                    && all posEq nonBs
+          where nonBs = blanks allBlankSudoku \\ blanks sud 
+                posEq p = ((sols !! fst p) !! snd p) == ((suds !! fst p) !! snd p)
 
 -- * F4
 

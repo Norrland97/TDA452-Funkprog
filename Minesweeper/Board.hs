@@ -19,7 +19,7 @@ type Row = [Space]
 
 type Board = [Row]
 
--- (row, col)
+-- row, col
 type Pos = (Int,Int)
 
 example =  [[  b,n 1,  l,n 2,  b,n 2],
@@ -81,6 +81,10 @@ placeBombs g bombAmount b = (calcNeighbourScore bomCoord (setBoard b Bomb (sortB
 -- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 -}
 
+newBoard :: Board
+newBoard = makeBoard (mkStdGen 4) bombRateMed boardSizeMed
+
+
 makeBoard :: StdGen -> Int -> (Int, Int) -> Board
 makeBoard g bombAmount size = placeBombs g bombAmount (emptyBoard size)
 
@@ -89,26 +93,71 @@ placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Space{item=B
     where boomCord = calcBombCoord g bombAmount (length (head b) ,length b)
 -- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 
+hideAll :: Board -> Board
+hideAll [] = []
+hideAll (r:rs) = map hid r:hideAll rs
+    where hid Space{item = i, state = s} = Space i Hidden 
+{-}
+reveal :: Pos -> Board -> Board
+reveal pos b = byTh (revealSpace b pos)
+    where byTh Blank             = findBlankArea pos b
+          byTh (Numeric i) = setBoard b (revealSpace pos b) [pos]
+             --item <space> == nå
+
+-}
+
+reveal :: Pos -> Board -> Board
+reveal pos b | item (revealSpace b pos) == Blank = findBlankArea pos b
+             | item (revealSpace b pos) == (Numeric i) = setBoard b (revealSpace pos b) [pos]
+             | otherwise                                  = undefined--gameOver
+    where byTh Blank = findBlankArea pos b
+    
+
+findBlankArea :: Pos -> Board -> Board
+findBlankArea fstPos b = [ sB (findBlankArea (revealSpace b pos)) | pos <- (getAdjacent b fstPos), isToBeRevealed (revealSpace b pos)]
+    where sB sp = setBoard b (Space Blank Showing) sp
+          isToBeRevealed Space{item=Blank}     = True
+          isToBeRevealed Space{item=Numeric i} = True
+              
+
+--gets the items posioned above, under and to each side of the position, including position
+getAdjacent :: Board -> Pos -> [Pos]
+getAdjacent rs (col, row) = [(c,r)|r <- [row-1..row+1], c <- [col-1..col+1], inLimit r && inLimit c]
+    where inLimit i = i >= 0 && i <= 8
 
 -- test w:  printBoard (setBoard (emptyBoard (boardSizeMed)) Bomb [(0,0), (3,3), (15,15)])
 -- could use same strategy as setSpaceInRow. Don't know what's the best
 -- sets input space in every coord of input Board defined by input [Pos]
 -- demands [Pos] to be sorted
 setBoard :: Board -> Space -> [Pos] -> Board
-setBoard b@(r:rs) space pos@((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r space x):rs) space ps
-                                       | otherwise = r:setBoard rs space (skewPosList ((x,y):ps))       -- unchanged Row r glued to iteration with y-1, positions skewed with 1 
+setBoard b@(r:rs) space ((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r space x):rs) space ps
+                                   | otherwise = r:setBoard rs space (skewPosList ((x,y):ps))       -- unchanged Row r glued to iteration with y-1, positions skewed with 1 
+    where
+          skewPosList ((xp,yp):pps) | yp == 0   = (xp, 0):skewPosList pps   
+                                    | otherwise = (xp, yp-1):skewPosList pps
+          skewPosList []            = []
+setBoard b space []                            = b
+setBoard [] _ _                                = []
+
+-- 
+{-}
+setBoard :: Board -> Space -> [Pos] -> Board
+setBoard b@(r:rs) space ((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r space x):rs) space ps
+                                   | otherwise = r:setBoard rs space (skewPosList ((x,y):ps))       -- unchanged Row r glued to iteration with y-1, positions skewed with 1 
     where
           skewPosList ((xp,yp):pps) = (xp, yp-1):skewPosList pps
           skewPosList []            = []
 setBoard b space []                                = b
 setBoard [] _ _                                    = []
---non-exhaustive, fix
+-}
 -- might be index out of bounds above
+
 
 setSpaceInRow :: Row -> Space -> Int -> Row
 setSpaceInRow row sp i | i < 0 
-                      || i > (length row) = row
-                       | otherwise        = (take i row) ++ [sp] ++ (drop (i+1) row )
+                      || i > ((length row) -1)   = row
+                       | i == ((length row) - 1) = (take i row) ++ [sp]
+                       | otherwise               = (take i row) ++ [sp] ++ (drop (i+1) row )
 
 
 --traverses the board and places numbers on the right space
@@ -121,6 +170,41 @@ fillNums b@(r:rs) = map setNs ns
 
 -}
 
+calcNeighbourScore :: [Pos] -> Board -> Board                                         -- shouldn't have weird x y relations
+calcNeighbourScore ((x,y):ps) b | ps == []  = allNeighbours (x,y) (-1,-1) b           -- TODO nextNeighbours funkar inte här???
+                                | otherwise = calcNeighbourScore ps nextNeighbours    -- recursive call with the rest of the bomb pos. and the updated board
+    where nextNeighbours = allNeighbours (x,y) (-1,-1) b
+
+-- bombPos, (-1,-1), board
+allNeighbours :: Pos -> Pos -> Board -> Board
+allNeighbours (row,sp) (skewRow, skewSp) b = recurve (setBoard b successor [((row + skewRow), (sp + skewSp))])
+    where successor' Space{item = Numeric i, state = s} = Space (Numeric (i+1)) s
+          successor' Space{item = Bomb, state = s}      = Space Bomb s
+          successor' Space{item = _, state = s}         = Space (Numeric 1) s
+          successor | okSkewRow && okSkewSp = successor' ((b !! (sp + skewSp)) !! (row + skewRow))
+
+          nextSkewRow :: Int
+          nextSkewRow | skewRow == 1 && skewSp == 1  = -2
+                      | skewRow == 1                = -1
+                      | skewRow == -1 && skewSp == 0 = 1
+                      | otherwise                 = skewRow + 1
+          nextSkewSp :: Int
+          nextSkewSp | skewRow == 1                = skewSp + 1
+                     | otherwise                 = skewSp
+
+          okSkewRow | row + skewRow > (length b)                             
+                    || row + skewRow < 0               = False
+                    | otherwise                        = True
+          okSkewSp | sp + skewSp > (length (head b))
+                   || sp + skewSp < 0         = False
+                   | otherwise                = True
+          recurve nB | nextSkewRow == -2 = nB
+                     | otherwise         = allNeighbours (row,sp) (nextSkewRow, nextSkewSp) nB
+
+
+
+
+{-}
 calcNeighbourScore :: [Pos] -> Board -> Board
 calcNeighbourScore ((x,y):ps) b | ps == []  = allNeighbours (x,y) (-1,-1) b           -- TODO nextNeighbours funkar inte här???
                                 | otherwise = calcNeighbourScore ps nextNeighbours
@@ -151,35 +235,6 @@ allNeighbours (row,sp) (skewRow, skewSp) b = recurve (setBoard b successor [((ro
                    | otherwise                       = sp + skewSp
           recurve nB | nextSkewRow == -2 = nB
                      | otherwise         = allNeighbours (row,sp) (nextSkewRow, nextSkewSp) nB
-
-
-
-
-{-}
-allNeighbours :: Pos -> Pos -> Board -> Board
-allNeighbours (x,y) (skewX, skewY) b = recurve (setBoard b successor [((x + skewX), (y + skewY))])
-    where successor' (Numeric i) = Numeric (i+1)
-          successor' Bomb        = Bomb
-          successor' _           = Numeric 1
-          successor = successor' ((b !! okSkewY) !! (okSkewX))
-
-          nextSkewX :: Int
-          nextSkewX | skewX == 1 && skewY == 1  = -2
-                    | skewX == 1                = -1
-                    | skewX == -1 && skewY == 0 = 1
-                    | otherwise                 = skewX + 1
-          nextSkewY :: Int
-          nextSkewY | skewX == 1                = skewY + 1
-                    | otherwise                 = skewY
-
-          okSkewX | x + skewX > (length (head b)) = (length (head b))                            -- this is dumb, these result doesn't matter
-                  | x + skewX < 0                 = 0
-                  | otherwise                     = x + skewX
-          okSkewY | y + skewY > (length b)        = length b
-                  | y + skewY < 0                 = 0
-                  | otherwise                     = y + skewY
-          recurve nB | nextSkewX == -2 = nB
-                     | otherwise       = allNeighbours (x,y) (nextSkewX, nextSkewY) nB
 -}
 
 -- must give new g each time, mult randomer can't return g
@@ -216,14 +271,30 @@ nums :: Int -> Int -> StdGen -> [Int]
 nums amount roof g = take amount (randomRs (0, roof) g)  
 
           
+-- replaces the index of a list with a given element
+(!!=) :: [a] -> (Int,a) -> [a]
+[] !!= _ = []
+l@(x:[]) !!= (i,y) | i == 0    = [y]                           
+                   | otherwise = l
+l@(x:xs) !!= (i,y) | i < 0                                        
+                   || i > (length l-1) = l                            
+                   | i == 0            = y : xs 
+                   | otherwise         = x : (xs !!= (i-1, y))
+
 --placeBombsOnRow ss = 
 
 -- space helpers
 
--- evaluation a Space in gameplay
+-- evaluation a Space in gameplay, set a space to show
 revealSpace :: Board -> (Int, Int) -> Space
-revealSpace b (x,y) = Space (item ((b !! y) !! x)) Showing
-    
+revealSpace b (col,row) = Space (item ((b !! row) !! col)) Showing
+
+{-
+-- reveal given spaces in given board.
+revealSpaces :: Board -> [Pos] -> Board
+revealSpaces b ps = [b !!= (snd p, newR (fst p) (snd p))| p <- ps]--b !!= (row, newR) 
+        where newR col row = (b !! row) !!= ( col, (revealSpace b (col,row)))
+-}
 --prints the board
 printBoard :: Board -> IO()
 printBoard [] = return ()

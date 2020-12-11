@@ -81,7 +81,8 @@ setBoard b@(r:rs) space pos@((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r 
           skewPosList ((xp,yp):pps) = (xp, yp-1):skewPosList pps
           skewPosList []            = []
 setBoard b space []                                = b
---setBoard --non-exhaustive, fix
+setBoard [] _ _                                    = []
+--non-exhaustive, fix
 -- might be index out of bounds above
 
 setSpaceInRow :: Row -> Space -> Int -> Row
@@ -111,21 +112,21 @@ allNeighbours (row,sp) (skewRow, skewSp) b = recurve (setBoard b successor [((ro
     where successor' (Numeric i) = Numeric (i+1)
           successor' Bomb        = Bomb
           successor' _           = Numeric 1
-          successor = successor' ((b !! okSkewSp) !! (okSkewRow))
+          successor = successor' ((b !! okSkewRow) !! (okSkewSp))
 
           nextSkewRow :: Int
-          nextSkewRow | skewSp == 1 && skewRow == 1  = -2
-                      | skewSp == 1                = -1
-                      | skewSp == -1 && skewRow == 0 = 1
+          nextSkewRow | skewRow == 1 && skewSp == 1  = -2
+                      | skewRow == 1                = -1
+                      | skewRow == -1 && skewSp == 0 = 1
                       | otherwise                 = skewRow + 1
           nextSkewSp :: Int
-          nextSkewSp | skewSp == 1                = skewSp + 1
+          nextSkewSp | skewRow == 1                = skewSp + 1
                      | otherwise                 = skewSp
 
-          okSkewRow | row + skewRow > (length (head b)) = (length (head b))                            -- this is dumb, these result doesn't matter
+          okSkewRow | row + skewRow > (length b) = (length b)                            -- this is dumb, these result doesn't matter
                     | row + skewRow < 0         = 0
                     | otherwise                 = row + skewRow
-          okSkewSp | sp + skewSp > (length b) = length b
+          okSkewSp | sp + skewSp > (length (head b)) = length (head b)
                    | sp + skewSp < 0                 = 0
                    | otherwise                       = sp + skewSp
           recurve nB | nextSkewRow == -2 = nB

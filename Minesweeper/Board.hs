@@ -127,6 +127,19 @@ getAdjacent :: Board -> Pos -> [Pos]
 getAdjacent rs (col, row) = [(c,r)|r <- [row-1..row+1], c <- [col-1..col+1], inLimit r && inLimit c]
     where inLimit i = i >= 0 && i <= 8
 
+-- reveals a space, if the space is a blank, it reveals all surounding blsnks and surrounding numbers
+open :: Board -> Pos -> Board
+open b p@(col, row) = revealSeveralSpace b op 
+    where space = (b !! row) !! col
+          op    = open' b p space
+
+-- returns a list of positions to open  
+open':: Board -> Pos -> Space -> [Pos] --| currently cause an infinite loops while getting the Blank positions look closer at this!!!! bc it jumps back and forth getting the same 2 blank spaes and surrounding spots... *le sigh*
+open' _ p Space{state = Flagged} = [(-1,-1)]
+open' b p Space{item = Blank}    = concat [open' b x ((b !! snd x) !! fst x) | x <- getAdjacent b p, item ((b !! snd x) !! fst x) == Blank]
+open' _ p _                      = [p] -- otherwise is num or Bomb, in that case open one
+
+
 -- test w:  printBoard (setBoard (emptyBoard (boardSizeMed)) Bomb [(0,0), (3,3), (15,15)])
 -- could use same strategy as setSpaceInRow. Don't know what's the best
 -- sets input space in every coord of input Board defined by input [Pos]
@@ -293,6 +306,8 @@ revealSpace b (col,row) = Space (item ((b !! row) !! col)) Showing
 
 -- reveals a space of a given borad
 revealOneSpace :: Board -> Pos -> Board
+revealOneSpace b@(r:rs) (x,y) | x < 0 || y < 0 = b -- guards to return unchanged Board if index too large or small
+                              | x > length b || y > length r = b
 revealOneSpace b (col, row) = b !!= (row, newRow)
     where newRow = (b !! row) !!= (col, revealSpace b (col,row))
 
@@ -302,7 +317,7 @@ revealSeveralSpace b (p:[]) = revealOneSpace b p
 revealSeveralSpace b (p:ps) = revealSeveralSpace new ps
     where new = revealOneSpace b p
 
---Flags a given space
+--Flags a given space if it's not allread flaggen, otherwise removes flag
 flagSpace :: Board -> Pos -> Board
 flagSpace = undefined
 

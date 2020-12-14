@@ -42,6 +42,8 @@ example' =  [[  h,h,  l,n 2,  b,n 2],
           h = Space Blank Hidden
 
 
+hiddenExample = hideAll example
+
 posExamples :: [Pos]
 posExamples = [(1,1),(0,1),(3,4),(0,0),(0,4),(0,3),(4,4)]
 exampleRow = [Blank, Blank, Blank, Numeric 1, Bomb, Numeric 1, Blank]
@@ -105,7 +107,7 @@ reveal pos b = byTh (revealSpace b pos)
              --item <space> == nå
 
 -}
-
+{-}
 reveal :: Pos -> Board -> Board
 reveal pos b | item (revealSpace b pos) == Blank = findBlankArea pos b
              | item (revealSpace b pos) == (Numeric i) = setBoard b (revealSpace pos b) [pos]
@@ -118,7 +120,7 @@ findBlankArea fstPos b = [ sB (findBlankArea (revealSpace b pos)) | pos <- (getA
     where sB sp = setBoard b (Space Blank Showing) sp
           isToBeRevealed Space{item=Blank}     = True
           isToBeRevealed Space{item=Numeric i} = True
-              
+-}          
 
 --gets the items posioned above, under and to each side of the position, including position
 getAdjacent :: Board -> Pos -> [Pos]
@@ -289,12 +291,21 @@ l@(x:xs) !!= (i,y) | i < 0
 revealSpace :: Board -> (Int, Int) -> Space
 revealSpace b (col,row) = Space (item ((b !! row) !! col)) Showing
 
-{-
--- reveal given spaces in given board.
-revealSpaces :: Board -> [Pos] -> Board
-revealSpaces b ps = [b !!= (snd p, newR (fst p) (snd p))| p <- ps]--b !!= (row, newR) 
-        where newR col row = (b !! row) !!= ( col, (revealSpace b (col,row)))
--}
+-- reveals a space of a given borad
+revealOneSpace :: Board -> Pos -> Board
+revealOneSpace b (col, row) = b !!= (row, newRow)
+    where newRow = (b !! row) !!= (col, revealSpace b (col,row))
+
+--Reveals multiple spaces and returns the result as a board
+revealSeveralSpace :: Board -> [Pos] -> Board
+revealSeveralSpace b (p:[]) = revealOneSpace b p
+revealSeveralSpace b (p:ps) = revealSeveralSpace new ps
+    where new = revealOneSpace b p
+
+--Flags a given space
+flagSpace :: Board -> Pos -> Board
+flagSpace = undefined
+
 --prints the board
 printBoard :: Board -> IO()
 printBoard [] = return ()

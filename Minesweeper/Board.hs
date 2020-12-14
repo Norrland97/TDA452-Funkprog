@@ -134,7 +134,7 @@ open b p@(col, row) = revealSeveralSpace b op
           op    = open' b p space
 
 -- returns a list of positions to open  
-open':: Board -> Pos -> Space -> [Pos] --| currently cause an infinite loops while getting the Blank positions look closer at this!!!! bc it jumps back and forth getting the same 2 blank spaes and surrounding spots... *le sigh*
+open':: Board -> Pos -> Space -> [Pos] -- | currently cause an infinite loops while getting the Blank positions look closer at this!!!! bc it jumps back and forth getting the same 2 blank spaes and surrounding spots... *le sigh*
 open' _ p Space{state = Flagged} = [(-1,-1)]
 open' b p Space{item = Blank}    = concat [open' b x ((b !! snd x) !! fst x) | x <- getAdjacent b p, item ((b !! snd x) !! fst x) == Blank]
 open' _ p _                      = [p] -- otherwise is num or Bomb, in that case open one

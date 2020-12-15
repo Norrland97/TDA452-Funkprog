@@ -13,9 +13,11 @@ boardSuite w =
     do  return w # set UI.title "~Minesweeper~"
         getBody w # set style [("background-color", "orange")]
 
-        midCanvas <- UI.canvas # set UI.height 400
-                               # set UI.width  400
-                               # set style [("background-color", "white")]
+        midCanvas <- UI.canvas # set textAlign Center
+                               # set UI.width 1400
+                               # set UI.height 700
+                               # set textFont "35px sans-serif"
+                              -- # set style [("background-color", "white")]
         instrText <- string "helpful text"
         startGameButton <- UI.button # set UI.text "Start game"
         --on UI.click startGameButton $ \event ->
@@ -23,10 +25,12 @@ boardSuite w =
         contentGrid <- grid [[ element midCanvas], 
                              [ element instrText],
                              [ element startGameButton]]
-                             # set UI.style[("text-align", "center")]
+                             # set UI.style[("padding", "200px"),
+                                            ("text-align", "center")]
         getBody w #+ [ element contentGrid
                       ]          -- add this list of stuff as children to this window
-                      # set UI.style [("text-align", "center")]
+                      # set UI.textAlign Center
+                      
 
        -- minesweeperStateRef <- liftIO $ newIORef
         drawBoard midCanvas (0,0) example
@@ -50,17 +54,26 @@ drawRow canvas p [] =
 
 drawSpace :: UI.Canvas -> Point -> Space -> UI ()
 drawSpace canvas p (Space{state = Hidden}) = 
-    do drawBox canvas p
-       
-       
-drawSpace canvas p Space{item = Bomb}    = drawBox canvas p
-drawSpace canvas p Space{item = Blank}    = drawBox canvas p
-drawSpace canvas p Space{item = Numeric i}    = drawBox canvas p
+    do drawBox canvas p ""           
+drawSpace canvas p Space{item = Bomb}      =
+    do drawBox canvas p "X"
 
-drawBox :: UI.Canvas -> Point -> UI ()
-drawBox canvas p =
+drawSpace canvas p Space{item = Blank}     = 
+    do drawBox canvas p "O"
+drawSpace canvas p Space{item = Numeric i} = 
+    do drawBox canvas p (show i)
+
+drawBox :: UI.Canvas -> Point -> String -> UI ()
+drawBox canvas p@(x,y) "" =
     do canvas # set' UI.fillStyle (UI.htmlColor "teal")
        canvas # UI.fillRect p 50 50
+drawBox canvas p@(x,y) str =
+    do canvas # set' UI.fillStyle (UI.htmlColor "yellow")
+       canvas # UI.fillRect p 50 50
+       canvas # set' UI.fillStyle (UI.htmlColor "black")
+    --   pure canvas # set textFont "35px sans-serif"
+     --  pure canvas # set textAlign Center
+       fillText str (x+25, y+25) canvas
        
        
 

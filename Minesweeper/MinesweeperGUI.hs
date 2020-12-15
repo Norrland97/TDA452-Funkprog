@@ -1,6 +1,7 @@
 module MinesweeperGUI where
 import qualified Graphics.UI.Threepenny       as UI
 import           Graphics.UI.Threepenny.Core
+import           Graphics.UI.Threepenny.Canvas
 import Data.IORef
 import Board
 
@@ -17,8 +18,8 @@ boardSuite w =
                                # set style [("background-color", "white")]
         instrText <- string "helpful text"
         startGameButton <- UI.button # set UI.text "Start game"
-        on UI.click startGameButton $ \event ->
-            do liftIO $ print "sorry, no game implemented"
+        --on UI.click startGameButton $ \event ->
+        --    do liftIO $ print "sorry, no game implemented"
         contentGrid <- grid [[ element midCanvas], 
                              [ element instrText],
                              [ element startGameButton]]
@@ -28,28 +29,41 @@ boardSuite w =
                       # set UI.style [("text-align", "center")]
 
        -- minesweeperStateRef <- liftIO $ newIORef
-        drawSpace midCanvas (Space Bomb Hidden)
+        drawBoard midCanvas (0,0) example
         return ()
 
-drawBoard :: UI.Canvas -> Board -> UI ()
-drawBoard canvas board = undefined
+drawBoard :: UI.Canvas -> Point -> Board -> UI ()
+drawBoard canvas (x,y) (r:rs) = 
+    do drawRow canvas (x,y) r
+       drawBoard canvas (x, y+70) rs
+drawBoard canvas p [] =
+    do return ()
 
 
-drawSpace :: UI.Canvas -> Space -> UI ()
-drawSpace canvas Space{state = Hidden} = drawBox canvas
-drawSpace canvas Space{item = Bomb}    = drawBox canvas
+drawRow :: UI.Canvas -> Point -> Row -> UI ()
+drawRow canvas (x,y) (r:rs) =
+    do drawSpace canvas (x,y) r
+       drawRow canvas (x+70, y) rs
+drawRow canvas p [] =
+    do return ()
 
-drawBox :: UI.Canvas -> UI ()
-drawBox canvas =
+
+drawSpace :: UI.Canvas -> Point -> Space -> UI ()
+drawSpace canvas p (Space{state = Hidden}) = 
+    do drawBox canvas p
+       
+       
+drawSpace canvas p Space{item = Bomb}    = drawBox canvas p
+drawSpace canvas p Space{item = Blank}    = drawBox canvas p
+drawSpace canvas p Space{item = Numeric i}    = drawBox canvas p
+
+drawBox :: UI.Canvas -> Point -> UI ()
+drawBox canvas p =
     do canvas # set' UI.fillStyle (UI.htmlColor "teal")
-       canvas # UI.fillRect (0,0) 50 50
-       canvas # set' UI.fillStyle (UI.htmlColor "orange")
-       {-}
-       canvas # UI.beginPath
-       canvas # UI.lineTo (30.0, 300.0)
-       canvas # UI.closePath
-       canvas # UI.fill
-       canvas # UI.stroke-}
+       canvas # UI.fillRect p 50 50
+       
+       
+
        {-}
        UI.beginPath canvas
        UI.moveTo (0, 50) canvas
@@ -57,4 +71,13 @@ drawBox canvas =
        UI.moveTo (50, 0) canvas
        UI.moveTo (0,  0) canvas
        UI.closePath canvas
-       UI.stroke canvas-}
+       UI.stroke canvas
+       
+       canvas # set' UI.lineWidth 10
+       canvas # UI.beginPath
+       canvas # UI.moveTo p
+       canvas # UI.lineTo (30.0, 300.0)
+       canvas # UI.closePath
+       canvas # UI.fill
+       canvas # UI.stroke
+       -}

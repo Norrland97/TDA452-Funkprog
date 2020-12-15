@@ -3,6 +3,7 @@ module Minesweeper where
 import Board
 import MinesweeperGUI
 import Data.Char(isDigit)
+import Diagrams.Prelude
 
 type Views = [Pos]
 
@@ -31,6 +32,7 @@ gameLoop b vs    | win  = showWin
         showLose = putStr "Lose!" -- show bombs sortof
         showView = printBoard b
 
+allOpen :: Board 
 
 --prints the coordnates from the board that has been selected
 {-}

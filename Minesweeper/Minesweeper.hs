@@ -3,7 +3,8 @@ module Minesweeper where
 import Board
 import MinesweeperGUI
 import Data.Char(isDigit)
-import Diagrams.Prelude
+
+
 
 type Views = [Pos]
 
@@ -32,7 +33,18 @@ gameLoop b vs    | win  = showWin
         showLose = putStr "Lose!" -- show bombs sortof
         showView = printBoard b
 
-allOpen :: Board 
+-- returns true if all spaces are showing except bombs
+isWin :: Board -> Bool
+isWin (r:[]) = []
+isWin (r:rs) = undefined
+
+-- returns true if a bomb is showing
+isLose :: Board -> Bool
+isLose ()
+isLose (r:rs) | null rs   = r
+              | otherwise = r && isLose rs
+        where r = not (null ([ x | x <- r, item x == Bomb && state x == Showing]))
+    
 
 --prints the coordnates from the board that has been selected
 {-}

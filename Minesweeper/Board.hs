@@ -42,6 +42,16 @@ example' =  [[  h,h,  l,n 2,  b,n 2],
           h = Space Blank Hidden
 
 
+winExample =  [[  b,n 1,  l,n 2,  b,n 2],
+            [n 1,n 1,  l,n 3,  b,n 2],
+            [n 1,n 1,n 2,  b,n 2,n 1],
+            [n 1,  b,n 3,n 2,n 2,n 1],
+            [n 1,n 2,  b,n 1,n 1, b]]
+    where n i = Space (Numeric i) Showing
+          b = Space Bomb Hidden
+          l = Space Blank Showing
+
+
 hiddenExample = hideAll example
 
 posExamples :: [Pos]

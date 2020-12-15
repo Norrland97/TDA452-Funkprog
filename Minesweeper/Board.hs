@@ -75,88 +75,19 @@ bombRateHard = 99
 boardSizeHard :: (Int, Int)
 boardSizeHard = (30, 16)
 
--- construction of a new Board
-
 emptyBoard :: (Int, Int) -> Board
 emptyBoard (x,y) = replicate y (replicate x (Space Blank Showing))
 
-{-}
--- printBoard (makeBoard (mkStdGen 88) bombRateMed boardSizeMed)
-makeBoard :: StdGen -> Int -> (Int, Int) -> Board
-makeBoard g bombAmount size = calcNeighbourScore (snd bombs) (fst bombs)
-    where bombs = placeBombs g bombAmount (emptyBoard size)
-
-placeBombs :: StdGen -> Int -> Board -> (Board, [Pos])
-placeBombs g bombAmount b = (calcNeighbourScore bomCoord (setBoard b Bomb (sortBy ((on compare snd) <> (on compare fst)) bomCoord)), bomCoord) -- this is where x and y mixup might cause problems
-    where bomCoord :: [Pos]
-          bomCoord = calcBombCoord g bombAmount (length (head b) ,length b)
--- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
--}
-
-newBoard :: Board
-newBoard = makeBoard (mkStdGen 4) bombRateMed boardSizeMed
-
-
+-----------------------------Logic for creating and setting up boards-------------------
+-- creates a board fron given parameters
 makeBoard :: StdGen -> Int -> (Int, Int) -> Board
 makeBoard g bombAmount size = placeBombs g bombAmount (emptyBoard size)
 
+-- places bombs with a given stdgen and nr
 placeBombs :: StdGen -> Int -> Board -> Board
 placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Space{item=Bomb, state=Hidden} (sortBy ((on compare snd) <> (on compare fst)) boomCord))  -- this is where x and y mixup might cause problems
     where boomCord = calcBombCoord g bombAmount (length (head b) ,length b)
--- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
-
--- shows all the spaces
-showAll :: Board -> Board
-showAll [] = []
-showAll (r:rs) = map show r:showAll rs
-    where show Space{item = i, state = s} = Space i Showing
-
--- hides all the spaces
-hideAll :: Board -> Board
-hideAll [] = []
-hideAll (r:rs) = map hid r:hideAll rs
-    where hid Space{item = i, state = s} = Space i Hidden 
-
-{-}
-reveal :: Pos -> Board -> Board
-reveal pos b = byTh (revealSpace b pos)
-    where byTh Blank             = findBlankArea pos b
-          byTh (Numeric i) = setBoard b (revealSpace pos b) [pos]
-             --item <space> == nå
-
--}
-{-}
-reveal :: Pos -> Board -> Board
-reveal pos b | item (revealSpace b pos) == Blank = findBlankArea pos b
-             | item (revealSpace b pos) == (Numeric i) = setBoard b (revealSpace pos b) [pos]
-             | otherwise                                  = undefined--gameOver
-    where byTh Blank = findBlankArea pos b
-    
-
-findBlankArea :: Pos -> Board -> Board
-findBlankArea fstPos b = [ sB (findBlankArea (revealSpace b pos)) | pos <- (getAdjacent b fstPos), isToBeRevealed (revealSpace b pos)]
-    where sB sp = setBoard b (Space Blank Showing) sp
-          isToBeRevealed Space{item=Blank}     = True
-          isToBeRevealed Space{item=Numeric i} = True
--}          
-
---gets the items posioned above, under and to each side of the position, including position
-getAdjacent :: Board -> Pos -> [Pos]
-getAdjacent rs (col, row) = [(c,r)|r <- [row-1..row+1], c <- [col-1..col+1], inLimit r && inLimit c]
-    where inLimit i = i >= 0 && i <= 8
-
--- reveals a space, if the space is a blank, it reveals all surounding blsnks and surrounding numbers
-open :: Board -> Pos -> Board
-open b p@(col, row) = revealSeveralSpace b op 
-    where space = (b !! row) !! col
-          op    = open' b p space
-
--- returns a list of positions to open  
-open':: Board -> Pos -> Space -> [Pos] 
-open' _ p Space{state = Flagged} = [(-1,-1)]
-open' b p Space{item = Blank}    = nub $ concat [getAdjacent b x | x <- getAdjacent b p, item ((b !! snd x) !! fst x) == Blank]
-open' _ p _                      = [p] -- otherwise is num or Bomb, in that case open one
-
+-- | comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 
 -- test w:  printBoard (setBoard (emptyBoard (boardSizeMed)) Bomb [(0,0), (3,3), (15,15)])
 -- could use same strategy as setSpaceInRow. Don't know what's the best
@@ -172,37 +103,14 @@ setBoard b@(r:rs) space ((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r spac
 setBoard b space []                            = b
 setBoard [] _ _                                = []
 
--- 
-{-}
-setBoard :: Board -> Space -> [Pos] -> Board
-setBoard b@(r:rs) space ((x,y):ps) | y == 0    = setBoard ((setSpaceInRow r space x):rs) space ps
-                                   | otherwise = r:setBoard rs space (skewPosList ((x,y):ps))       -- unchanged Row r glued to iteration with y-1, positions skewed with 1 
-    where
-          skewPosList ((xp,yp):pps) = (xp, yp-1):skewPosList pps
-          skewPosList []            = []
-setBoard b space []                                = b
-setBoard [] _ _                                    = []
--}
--- might be index out of bounds above
-
-
+-- | kommentar??
 setSpaceInRow :: Row -> Space -> Int -> Row
 setSpaceInRow row sp i | i < 0 
                       || i > ((length row) -1)   = row
                        | i == ((length row) - 1) = (take i row) ++ [sp]
                        | otherwise               = (take i row) ++ [sp] ++ (drop (i+1) row )
 
-
---traverses the board and places numbers on the right space
-{-
-fillNums :: Board -> Board
-fillNums b@(r:rs) = map setNs ns
-    where 
-        setNs n = uncurry setBoard n
-        ns = undefined
-
--}
-
+-- | Kommentar??
 calcNeighbourScore :: [Pos] -> Board -> Board                                         -- shouldn't have weird x y relations
 calcNeighbourScore ((x,y):ps) b | ps == []  = allNeighbours (x,y) (-1,-1) b           -- TODO nextNeighbours funkar inte här???
                                 | otherwise = calcNeighbourScore ps nextNeighbours    -- recursive call with the rest of the bomb pos. and the updated board
@@ -234,42 +142,6 @@ allNeighbours (row,sp) (skewRow, skewSp) b = recurve (setBoard b successor [((ro
           recurve nB | nextSkewRow == -2 = nB
                      | otherwise         = allNeighbours (row,sp) (nextSkewRow, nextSkewSp) nB
 
-
-
-
-{-}
-calcNeighbourScore :: [Pos] -> Board -> Board
-calcNeighbourScore ((x,y):ps) b | ps == []  = allNeighbours (x,y) (-1,-1) b           -- TODO nextNeighbours funkar inte här???
-                                | otherwise = calcNeighbourScore ps nextNeighbours
-    where nextNeighbours = allNeighbours (x,y) (-1,-1) b
-
--- bombPos, (-1,-1), board
-allNeighbours :: Pos -> Pos -> Board -> Board
-allNeighbours (row,sp) (skewRow, skewSp) b = recurve (setBoard b successor [((row + skewRow), (sp + skewSp))])
-    where successor' (Numeric i) = Numeric (i+1)
-          successor' Bomb        = Bomb
-          successor' _           = Numeric 1
-          successor = successor' ((b !! okSkewRow) !! (okSkewSp))
-
-          nextSkewRow :: Int
-          nextSkewRow | skewRow == 1 && skewSp == 1  = -2
-                      | skewRow == 1                = -1
-                      | skewRow == -1 && skewSp == 0 = 1
-                      | otherwise                 = skewRow + 1
-          nextSkewSp :: Int
-          nextSkewSp | skewRow == 1                = skewSp + 1
-                     | otherwise                 = skewSp
-
-          okSkewRow | row + skewRow > (length b) = (length b)                            -- this is dumb, these result doesn't matter
-                    | row + skewRow < 0         = 0
-                    | otherwise                 = row + skewRow
-          okSkewSp | sp + skewSp > (length (head b)) = length (head b)
-                   | sp + skewSp < 0                 = 0
-                   | otherwise                       = sp + skewSp
-          recurve nB | nextSkewRow == -2 = nB
-                     | otherwise         = allNeighbours (row,sp) (nextSkewRow, nextSkewSp) nB
--}
-
 -- must give new g each time, mult randomer can't return g
 -- calcBombCoord (mkStdGen <any number>) bombRateEasy boardSizeEasy
 -- calculates coordinates for bomb placements into tuples in a list
@@ -279,7 +151,6 @@ calcBombCoord gen rate (x,y) = map numToCoord (numsOk rate (x*y-1) gen)
           -- converts a number to a Pos
           numToCoord :: Int -> Pos
           numToCoord n                         = (mod n y, div n y)
-
           
 -- general helpers -----------------------------------------------------------------------
 -- numsOk bombRateEasy (boardLength*boardHeight) (mkStdGen <any number>) 
@@ -302,21 +173,36 @@ numsOk' rate roof oldList g3 | length nL == rate = nL
 -- get <amount> random numbers in the span [0,<roof>]
 nums :: Int -> Int -> StdGen -> [Int]
 nums amount roof g = take amount (randomRs (0, roof) g)  
+----------------
+----------------------------------Logic for changing states of the spaces of a board-------------
+-- shows all the spaces
+showAll :: Board -> Board
+showAll [] = []
+showAll (r:rs) = map show r:showAll rs
+    where show Space{item = i, state = s} = Space i Showing
 
-          
--- replaces the index of a list with a given element
-(!!=) :: [a] -> (Int,a) -> [a]
-[] !!= _ = []
-l@(x:[]) !!= (i,y) | i == 0    = [y]                           
-                   | otherwise = l
-l@(x:xs) !!= (i,y) | i < 0                                        
-                   || i > (length l-1) = l                            
-                   | i == 0            = y : xs 
-                   | otherwise         = x : (xs !!= (i-1, y))
+-- hides all the spaces
+hideAll :: Board -> Board
+hideAll [] = []
+hideAll (r:rs) = map hid r:hideAll rs
+    where hid Space{item = i, state = s} = Space i Hidden          
 
---placeBombsOnRow ss = 
+--gets the items posioned above, under and to each side of the position, including position
+getAdjacent :: Board -> Pos -> [Pos]
+getAdjacent rs (col, row) = [(c,r)|r <- [row-1..row+1], c <- [col-1..col+1], inLimit r && inLimit c]
+    where inLimit i = i >= 0 && i <= 8
 
--- space helpers
+-- reveals a space, if the space is a blank, it reveals all surounding blsnks and surrounding numbers
+open :: Board -> Pos -> Board
+open b p@(col, row) = revealSeveralSpace b op 
+    where space = (b !! row) !! col
+          op    = open' b p space
+
+-- returns a list of positions to open  
+open':: Board -> Pos -> Space -> [Pos] 
+open' _ p Space{state = Flagged} = [(-1,-1)]
+open' b p Space{item = Blank}    = nub $ concat [(getAdjacent b x)| x <- getAdjacent b p, item ((b !! snd x) !! fst x) == Blank]
+open' _ p _                      = [p] -- otherwise is num or Bomb, in that case open one
 
 -- evaluation a Space in gameplay, set a space to show
 revealSpace :: Board -> (Int, Int) -> Space
@@ -338,7 +224,19 @@ revealSeveralSpace b (p:ps) = revealSeveralSpace new ps
 --Flags a given space if it's not allread flaggen, otherwise removes flag
 flagSpace :: Board -> Pos -> Board
 flagSpace = undefined
-
+---------------------------------------------------------
+-----------a 'nice to have' operator
+-- replaces the index of a list with a given element
+(!!=) :: [a] -> (Int,a) -> [a]
+[] !!= _ = []
+l@(x:[]) !!= (i,y) | i == 0    = [y]                           
+                   | otherwise = l
+l@(x:xs) !!= (i,y) | i < 0                                        
+                   || i > (length l-1) = l                            
+                   | i == 0            = y : xs 
+                   | otherwise         = x : (xs !!= (i-1, y))
+--------------------
+------------------------------------Logic to print boards
 --prints the board
 printBoard :: Board -> IO()
 printBoard [] = return ()
@@ -356,4 +254,4 @@ showSpace Space{state = Flagged}  = "F"
 showSpace Space{item = Blank}     = "_"
 showSpace Space{item = Numeric i} = show i
 showSpace Space{item = Bomb}      = "*"
-
+-----------------------------------

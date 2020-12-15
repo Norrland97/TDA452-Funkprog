@@ -1,7 +1,8 @@
 module Minesweeper where
 
 import Board
-import MinesweeperGUI
+import System.Random
+-- import MinesweeperGUI
 import Data.Char(isDigit)
 
 
@@ -10,21 +11,26 @@ type Views = [Pos]
 
 type Flaggs = [Pos]
 
-main = gameLoop hiddenExample []
 
-{-gameInit :: IO()
-gameInit | bs 
-    where bS = do 
+
+-- ask the user for board size and creates one and calls for the game loop
+gameInit :: IO()
+gameInit = do 
+            putStrLn "choose difficulty '1', '2' or '3' : "
             s <- getLine
-            let 
--}
+            let bs = (toInts s)
+            let rates = [bombRateEasy, bombRateMed, bombRateHard] 
+            let sizes = [boardSizeEasy, boardSizeMed, boardSizeHard] 
+            if bs < 1 || bs > 3 then gameInit 
+                else gameLoop (hideAll(makeBoard (mkStdGen 4) (rates !! (bs - 1)) (sizes !! (bs - 1)))) []
+
 
 -- the game loop
 gameLoop :: Board -> Views -> IO()
 gameLoop b vs    | lose = showLose 
                  | win  = showWin
                  |otherwise = 
-             do printBoard board
+             do showBoard newBoard
                 s <- getLine
                 gameLoop newBoard (toPos s:vs)
     where 
@@ -35,7 +41,7 @@ gameLoop b vs    | lose = showLose
         showWin  = putStr $ "Win!" ++ visibleBoard  -- showView somhow
         showLose = putStr $ "Lose!" ++ visibleBoard -- show bombs sortof
         visibleBoard = "\n" ++ "The Board was: \n" ++  unlines (rowsToString (showAll newBoard))
-        
+        showBoard = printBoard 
 
 -- returns true if all spaces are showing except bombs
 isWin :: Board -> Bool

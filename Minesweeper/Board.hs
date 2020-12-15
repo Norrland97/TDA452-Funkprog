@@ -23,7 +23,7 @@ type Board = [Row]
 type Pos = (Int,Int)
 
 example =  [[  b,n 1,  l,n 2,  b,n 2],
-            [n 1,n 1,  l,n 3,  b,n 2],
+            [n 1,n 1,n 1,n 3,  b,n 2],
             [n 1,n 1,n 2,  b,n 2,n 1],
             [n 1,  b,n 3,n 2,n 2,n 1],
             [n 1,n 2,  b,n 1,n 1, b]]
@@ -105,10 +105,18 @@ placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Space{item=B
     where boomCord = calcBombCoord g bombAmount (length (head b) ,length b)
 -- comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 
+-- shows all the spaces
+showAll :: Board -> Board
+showAll [] = []
+showAll (r:rs) = map show r:showAll rs
+    where show Space{item = i, state = s} = Space i Showing
+
+-- hides all the spaces
 hideAll :: Board -> Board
 hideAll [] = []
 hideAll (r:rs) = map hid r:hideAll rs
     where hid Space{item = i, state = s} = Space i Hidden 
+
 {-}
 reveal :: Pos -> Board -> Board
 reveal pos b = byTh (revealSpace b pos)

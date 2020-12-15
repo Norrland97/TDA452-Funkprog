@@ -4,8 +4,8 @@ import           Graphics.UI.Threepenny.Core
 import Data.IORef
 import Board
 
-main :: IO ()
-main = startGUI defaultConfig boardSuite
+run :: IO ()
+run = startGUI defaultConfig boardSuite
 
 boardSuite :: Window -> UI ()
 boardSuite w = 

@@ -2,7 +2,6 @@ module Minesweeper where
 
 import Board
 import System.Random
--- import MinesweeperGUI
 import Data.Char(isDigit)
 
 

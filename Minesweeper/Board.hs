@@ -194,7 +194,9 @@ getAdjacent rs (col, row) = [(c,r)|r <- [row-1..row+1], c <- [col-1..col+1], inL
 
 -- reveals a space, if the space is a blank, it reveals all surounding blsnks and surrounding numbers
 open :: Board -> Pos -> Board
-open b p@(col, row) = revealSeveralSpace b op 
+open b p@(col, row) | row > length b || col > length (head b)
+                    || row < 0 || col < 0 = b
+                    | otherwise = revealSeveralSpace b op 
     where space = (b !! row) !! col
           op    = open' b p space
 
@@ -223,7 +225,7 @@ revealSeveralSpace b (p:ps) = revealSeveralSpace new ps
 
 --Flags a given space if it's not allread flaggen, otherwise removes flag
 flagSpace :: Board -> Pos -> Board
-flagSpace = undefined
+flagSpace b (col,row) = Space (item ((b !! row) !! col)) Flagged
 ---------------------------------------------------------
 -----------a 'nice to have' operator
 -- replaces the index of a list with a given element

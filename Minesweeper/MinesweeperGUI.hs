@@ -3,10 +3,23 @@ import qualified Graphics.UI.Threepenny       as UI
 import           Graphics.UI.Threepenny.Core
 import           Graphics.UI.Threepenny.Canvas
 import Data.IORef
+import System.Random
+import Minesweeper
 import Board
 
 main :: IO ()
 main = startGUI defaultConfig boardSuite
+
+data Minesweeper = MS { size  :: (Int,Int),
+                        board :: Board,
+                        views :: Views}
+        deriving (Show)
+
+newMinesweeper :: IO Minesweeper
+newMinesweeper = do g <- newStdGen
+                    let (i, _) = randomR (0, 5000) g
+                    return (MS {size = (8,8), board = hideAll (makeBoard (mkStdGen i) 10 (8,8)), views = []})
+
 
 setBoardSize :: Int -> Int -> UI ()
 setBoardSize w h = UI.canvas # set UI.width w

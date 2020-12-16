@@ -15,24 +15,39 @@ main = startGUI defaultConfig boardSuite
 
 data Minesweeper = MS { size  :: (Int,Int),
                         board :: Board,
-                        views :: Views}
+                        views :: Views,
+                        flagFlag :: Bool}
         deriving (Show)
 
 newMinesweeper :: IO Minesweeper
 newMinesweeper = do g <- newStdGen
                     let (i, _) = randomR (0, 5000) g
-                    return (MS {size = (8,8), board = hideAll (makeBoard (mkStdGen i) 10 (8,8)), views = []})
+                    return (MS {size = (8,8), board = hideAll (makeBoard (mkStdGen i) 10 (8,8)), views = [], flagFlag = False})
 
+{-}
 updateStateBoardCoord :: Minesweeper -> Pos -> IO Minesweeper
 updateStateBoardCoord state pos = do return (MS {size = size state,
                                                  board = open (board state) pos,
                                                  views = (views state)})
-
+-}
                                                  
 updateStateBoardCoord' :: Pos -> Minesweeper -> Minesweeper
 updateStateBoardCoord' pos state = (MS {size = size state,
                                         board = open (board state) pos,
-                                        views = (views state)})
+                                        views = (views state),
+                                        flagFlag = flagFlag state})
+
+updateStateBoardCoordFlag :: Pos -> Minesweeper -> Minesweeper
+updateStateBoardCoordFlag pos state = (MS {size = size state,
+                                          board = flagOneSpace (board state) pos,
+                                          views = (views state),
+                                          flagFlag = flagFlag state})
+
+updateStateFlagging :: Minesweeper -> Minesweeper
+updateStateFlagging state = (MS {size = size state,
+                                 board = board state,
+                                 views = (views state),
+                                 flagFlag = not (flagFlag state)})                                   
 
 --checkForWin :: Board -> Element -> UI ()       
 -- liftIO $ modifyIORef gameStateRef $ updateStateBoardCoord' (doubleToCoord coord)                                           
@@ -48,8 +63,10 @@ strFWin str = "yey you won"
 
 strFLose str = "oh no :( you lost"
 
+tileSize :: Double
 tileSize = 30
 
+tileSpaceSize :: Double
 tileSpaceSize = 10
 
 {-}
@@ -82,7 +99,7 @@ boardSuite w =
        -- pure midCanvas # set UI.fillStyle   (UI.htmlColor "black")
        -- pure midCanvas # set UI.textAlign Center
 
-        instrText <- string "helpful text"
+        instrText <- string "Welcome to Minesweeper! Please selected desired level of difficulty "
         --startGameButton <- UI.button # set UI.text "Start game"
         --on UI.click startGameButton $ \event ->
         --    do liftIO $ print "sorry, no game implemented"
@@ -94,6 +111,9 @@ boardSuite w =
         ezGameButton <- UI.button # set UI.text "Ez"
         medGameButton <- UI.button # set UI.text "Medium"
         hardGameButton <- UI.button # set UI.text "X-treme DANGER"
+
+
+        flagButton <- UI.button # set UI.text "Flag"
 
         contentGrid <- grid [[ element midCanvas], 
                              [ element instrText],
@@ -113,37 +133,73 @@ boardSuite w =
         drawBoard midCanvas (0,0) (board gameState)          -- draw game
         getBody w #+ [ element contentGrid]         -- add this list of stuff as children to this window
 
-        -- init canvas click action handler
-        on UI.mousedown midCanvas $ \coord ->
-            do --gameState <- liftIO $ updateStateBoardCoord (gameState) (doubleToCoord coord) 
+        on UI.contextmenu midCanvas $ \coord ->
+            do
+               element instrText # set UI.text "TJOHO"
                liftIO $ modifyIORef gameStateRef $ updateStateBoardCoord' (doubleToCoord coord) 
                -- liftIO $ modifyIORef hmStateRef (updateHangman c)
                curGameState <- liftIO( readIORef gameStateRef)
                drawBoard midCanvas (0,0) ( (board curGameState))
+
+        -- init canvas click action handler
+        on UI.mousedown midCanvas $ \coord ->
+            do curGameState <- liftIO( readIORef gameStateRef)
+               if (flagFlag curGameState)
+               then do liftIO $ modifyIORef gameStateRef $ updateStateBoardCoordFlag (doubleToCoord coord) 
+                       curGameState <- liftIO( readIORef gameStateRef)
+                       drawBoard midCanvas (0,0) ( (board curGameState))
                --element button # set UI.text "Play again?"
-               element instrText # set UI.text (checkForWin (board curGameState))
+                       element instrText # set UI.text (checkForWin (board curGameState))
                --checkForWin (board curGameState) element
-               element midCanvas # set textFont "90px sans-serif"
+                       return ()
+               else do--gameState <- liftIO $ updateStateBoardCoord (gameState) (doubleToCoord coord) 
+                       liftIO $ modifyIORef gameStateRef $ updateStateBoardCoord' (doubleToCoord coord) 
+               -- liftIO $ modifyIORef hmStateRef (updateHangman c)
+                       curGameState <- liftIO( readIORef gameStateRef)
+                       drawBoard midCanvas (0,0) ( (board curGameState))
+               --element button # set UI.text "Play again?"
+                       element instrText # set UI.text (checkForWin (board curGameState))
+               --checkForWin (board curGameState) element
+                       return ()
+
+
+        on UI.click flagButton $ \_ ->
+            do liftIO $ modifyIORef gameStateRef $ updateStateFlagging
+               curGameState <- liftIO( readIORef gameStateRef)
+               if (flagFlag curGameState)
+               then do element flagButton # set UI.text "Mark blanks"
+               else do element flagButton # set UI.text "Flag"
+               
+
+
+
 
         -- init game depending on difficulty level buttons
         on UI.click ezGameButton $ \event ->
-            do element midCanvas # set UI.width ((tileSize + tileSpaceSize)*8)
-               element midCanvas # set UI.height ((tileSize + tileSpaceSize)*8)
-               element midCanvas # set UI.width ((tileSize + tileSpaceSize)*8)
+            do element midCanvas # set UI.width ((double2Int (tileSize + tileSpaceSize))*8)
+               element midCanvas # set UI.height ((double2Int (tileSize + tileSpaceSize))*8)
+            --   element midCanvas # set UI.margin-left 500
         on UI.click medGameButton $ \event ->
-            do setBoardSize 960 960
+            do element midCanvas # set UI.width ((double2Int (tileSize + tileSpaceSize))*16)
+               element midCanvas # set UI.height ((double2Int (tileSize + tileSpaceSize))*16)
         on UI.click hardGameButton $ \event ->
-            do midCanvas <- UI.canvas # set UI.width 1800
-                                      # set UI.height 960
+            do element midCanvas # set UI.width ((double2Int (tileSize + tileSpaceSize))*30)
+               element midCanvas # set UI.height ((double2Int (tileSize + tileSpaceSize))*16)
                 --midCanvas <- setBoardSize 1800 960
                 -- create new game State
                drawBoard midCanvas (0,0) example'          -- draw game
                 -- init canvas click action handler
-               on UI.mousedown midCanvas $ \coord ->
-                   do gameState <- liftIO $ updateStateBoardCoord (gameState) (doubleToCoord coord)
-                      drawBoard midCanvas (0,0) (board gameState)
+          --     on UI.mousedown midCanvas $ \coord ->
+       --            do gameState <- liftIO $ updateStateBoardCoord' (gameState) (doubleToCoord coord)
+        --              drawBoard midCanvas (0,0) (board gameState)
                        --return ()
-
+               contentGrid <- grid [[ element midCanvas], 
+                                    [ element instrText],
+                                    [ element flagButton]]
+                                    # set UI.style[--("padding", "200px"),
+                                                    ("text-align", "center"),
+                                                    ("align-items", "center")]
+               getBody w #+ [ element contentGrid] 
                 
 
 
@@ -178,11 +234,12 @@ drawRow canvas p [] =
 
 
 drawSpace :: UI.Canvas -> Point -> Space -> UI ()
+drawSpace canvas p (Space{state = Flagged}) = 
+    do drawBox canvas p "F"
 drawSpace canvas p (Space{state = Hidden}) = 
     do drawBox canvas p "-"           
 drawSpace canvas p Space{item = Bomb}      =
     do drawBox canvas p "X"
-
 drawSpace canvas p Space{item = Blank}     = 
     do drawBox canvas p ""
 drawSpace canvas p Space{item = Numeric i} = 

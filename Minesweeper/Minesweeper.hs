@@ -41,7 +41,7 @@ gameLoop b vs    | lose = showLose
         showWin  = putStr $ "Win!" ++ visibleBoard  -- showView somhow
         showLose = putStr $ "Lose!" ++ visibleBoard -- show bombs sortof
         visibleBoard = "\n" ++ "The Board was: \n" ++  unlines (rowsToString (showAll newBoard))
-        showBoard = printBoard 
+        showBoard = printBoard
 
 -- returns true if all spaces are showing except bombs
 isWin :: Board -> Bool

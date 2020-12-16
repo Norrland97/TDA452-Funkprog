@@ -30,6 +30,15 @@ boardSuite :: Window -> UI ()
 boardSuite w = 
     do  return w # set UI.title "~Minesweeper~"
         getBody w # set style [("background-color", "orange")]
+
+
+        -- set properties of canvas
+        midCanvas <- UI.canvas # set textAlign Center
+                               # set textFont "35px sans-serif"
+                               # set UI.style[("align-items", "center"),
+                                              ("display", "flex")]
+                              -- # set style [("background-color", "white")]
+
         -- TODO button styling
 
         -- buttons for selecting difficulty
@@ -42,13 +51,7 @@ boardSuite w =
             do setBoardSize 960 960
         on UI.click hardGameButton $ \event ->
             do setBoardSize 1800 960
-
-        -- set properties of canvas
-        midCanvas <- UI.canvas # set textAlign Center
-                               # set textFont "35px sans-serif"
-                               # set UI.style[("align-items", "center"),
-                                              ("display", "flex")]
-                              -- # set style [("background-color", "white")]
+               drawBoard midCanvas (0,0) example'
 
         -- text styling
         pure midCanvas # set textFont "35px sans-serif"
@@ -67,12 +70,12 @@ boardSuite w =
                                                  ("text-align", "center"),
                                                  ("align-items", "center")]
         
-        getBody w #+ [ element contentGrid]          -- add this list of stuff as children to this window
+        getBody w #+ [ element initContentGrid]          -- add this list of stuff as children to this window
                      -- # set UI.textAlign Center
                       
 
        -- minesweeperStateRef <- liftIO $ newIORef
-        gameLoop
+        
         return ()
 
 drawBoard :: UI.Canvas -> Point -> Board -> UI ()

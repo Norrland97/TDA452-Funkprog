@@ -190,7 +190,7 @@ hideAll (r:rs) = map hid r:hideAll rs
 --gets the items posioned above, under and to each side of the position, including position
 getAdjacent :: Board -> Pos -> [Pos]
 getAdjacent rs (col, row) = [(c,r)|r <- [row-1..row+1], c <- [col-1..col+1], inLimit r && inLimit c]
-    where inLimit i = i >= 0 && i <= 8
+    where inLimit i = i >= 0 && i <= length rs
 
 -- reveals a space, if the space is a blank, it reveals all surounding blsnks and surrounding numbers
 open :: Board -> Pos -> Board

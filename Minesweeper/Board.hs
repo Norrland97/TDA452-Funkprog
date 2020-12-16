@@ -224,8 +224,14 @@ revealSeveralSpace b (p:ps) = revealSeveralSpace new ps
     where new = revealOneSpace b p
 
 --Flags a given space if it's not allread flaggen, otherwise removes flag
-flagSpace :: Board -> Pos -> Board
+flagSpace :: Board -> Pos -> Space
 flagSpace b (col,row) = Space (item ((b !! row) !! col)) Flagged
+
+flagOneSpace :: Board -> Pos -> Board
+flagOneSpace b@(r:rs) (x,y) | x < 0 || y < 0 = b -- guards to return unchanged Board if index too large or small
+                            | x > length b || y > length r = b
+flagOneSpace b (col, row) = b !!= (row, newRow)
+    where newRow = (b !! row) !!= (col, flagSpace b (col,row))
 ---------------------------------------------------------
 -----------a 'nice to have' operator
 -- replaces the index of a list with a given element

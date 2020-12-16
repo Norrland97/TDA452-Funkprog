@@ -225,7 +225,9 @@ revealSeveralSpace b (p:ps) = revealSeveralSpace new ps
 
 --Flags a given space if it's not allread flaggen, otherwise removes flag
 flagSpace :: Board -> Pos -> Space
-flagSpace b (col,row) = Space (item ((b !! row) !! col)) Flagged
+flagSpace b (col,row) | flag = Space (item ((b !! row) !! col)) Hidden
+                      | otherwise = Space (item ((b !! row) !! col)) Flagged
+        where flag = state ((b!!row)!!col) == Flagged
 
 flagOneSpace :: Board -> Pos -> Board
 flagOneSpace b@(r:rs) (x,y) | x < 0 || y < 0 = b -- guards to return unchanged Board if index too large or small

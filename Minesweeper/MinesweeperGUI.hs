@@ -16,18 +16,17 @@ main = startGUI defaultConfig boardSuite
 data Minesweeper = MS { size  :: (Int,Int),
                         board :: Board,
                         views :: Views,
-                        flagFlag :: Bool}
+                        flagFlag :: Bool,
+                        randG :: StdGen}
         deriving (Show)
 
 newMinesweeper :: IO Minesweeper
 newMinesweeper = do g <- newStdGen
                     let (i, _) = randomR (0, 5000) g
-                    return (MS {size = (8,8), board = hideAll (makeBoard (mkStdGen i) 10 (8,8)), views = [], flagFlag = False})
+                    return (MS {size = (8,8), board = hideAll (makeBoard (mkStdGen i) 10 (8,8)), views = [], flagFlag = False, randG = g})
 
-newBoard :: Pos -> IO Minesweeper
-newBoard sz = do g <- newStdGen
-                 let (i, _) = randomR (0, 5000) g
-                 return (MS {size = sz, board = hideAll (makeBoard (mkStdGen i) mines sz), views = [], flagFlag = False})
+newBoard :: Pos -> Minesweeper -> Minesweeper
+newBoard sz state = (MS {size = sz, board = hideAll (makeBoard (randG state) mines sz), views = [], flagFlag = False, randG = (randG state)})
     where mines | sz == (8,8) = bombRateEasy
                 | sz == (16,16) = bombRateMed
                 | sz == (30,16) = bombRateHard
@@ -36,7 +35,8 @@ newBoard sz = do g <- newStdGen
 
 
 noGameState :: IO Minesweeper
-noGameState = do return (MS {size = (0,0), board = hideAll (makeBoard (mkStdGen 1) 0 (0,0)), views = [], flagFlag = False})                 
+noGameState = do g <- newStdGen
+                 return (MS {size = (0,0), board = hideAll (makeBoard g 0 (0,0)), views = [], flagFlag = False, randG = g})                 
 
 {-}
 updateStateBoardCoord :: Minesweeper -> Pos -> IO Minesweeper
@@ -49,19 +49,22 @@ updateStateBoardCoord' :: Pos -> Minesweeper -> Minesweeper
 updateStateBoardCoord' pos state = (MS {size = size state,
                                         board = open (board state) pos,
                                         views = (views state),
-                                        flagFlag = flagFlag state})
+                                        flagFlag = flagFlag state,
+                                        randG = randG state})
 
 updateStateBoardCoordFlag :: Pos -> Minesweeper -> Minesweeper
 updateStateBoardCoordFlag pos state = (MS {size = size state,
                                           board = flagOneSpace (board state) pos,
                                           views = (views state),
-                                          flagFlag = flagFlag state})
+                                          flagFlag = flagFlag state,
+                                          randG = randG state})
 
 updateStateFlagging :: Minesweeper -> Minesweeper
 updateStateFlagging state = (MS {size = size state,
                                  board = board state,
                                  views = (views state),
-                                 flagFlag = not (flagFlag state)})                                   
+                                 flagFlag = not (flagFlag state),
+                                 randG = randG state})                                   
 
 --checkForWin :: Board -> Element -> UI ()       
 -- liftIO $ modifyIORef gameStateRef $ updateStateBoardCoord' (doubleToCoord coord)                                           
@@ -195,8 +198,9 @@ boardSuite w =
 
                --curGameState <- liftIO( readIORef gameStateRef)  
 
-               ioReffy <- liftIO $ newIORef ( newBoard (8,8))                                      -- create initial game State
-               liftIO ( writeIORef gameStateRef (liftIO (readIORef ioReffy)))
+             --  ioReffy <- liftIO $ newIORef ( newBoard (8,8))                                      -- create initial game State
+           ---    liftIO ( writeIORef gameStateRef (liftIO (readIORef ioReffy)))
+               liftIO $ modifyIORef gameStateRef $ newBoard (8,8)
 
                contentGrid <- grid [[ element midCanvas], 
                                     [ element instrText],
@@ -222,8 +226,7 @@ boardSuite w =
         on UI.click hardGameButton $ \event ->
             do element midCanvas # set UI.width ((double2Int (tileSize + tileSpaceSize))*30)
                element midCanvas # set UI.height ((double2Int (tileSize + tileSpaceSize))*16)
-               curGameState <- liftIO( readIORef gameStateRef)                                         -- create initial game State
-               liftIO $ modifyIORef curGameState $ newBoard (30,16)
+               liftIO $ modifyIORef gameStateRef $ newBoard (30,16)
                 --midCanvas <- setBoardSize 1800 960
                 -- create new game State
                --drawBoard midCanvas (0,0) example'          -- draw game

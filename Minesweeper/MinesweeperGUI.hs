@@ -8,19 +8,33 @@ import Board
 main :: IO ()
 main = startGUI defaultConfig boardSuite
 
+setBoardSize :: Int -> Int -> UI ()
+setBoardSize w h = UI.canvas # set UI.width w
+                             # set UI.height h
+
+
 boardSuite :: Window -> UI ()
 boardSuite w = 
     do  return w # set UI.title "~Minesweeper~"
         getBody w # set style [("background-color", "orange")]
+        -- TODO button styling
+
         -- buttons for selecting difficulty
         ezGameButton <- UI.button # set UI.text "Easy game"
         medGameButton <- UI.button # set UI.text "Medium difficulty"
         hardGameButton <- UI.button # set UI.text "X-treme"
-        
+        on UI.click ezGameButton $ \event ->
+            do setBoardSize 480 480
+        on UI.click medGameButton $ \event ->
+            do setBoardSize 960 960
+        on UI.click hardGameButton $ \event ->
+            do setBoardSize 1800 960
+
+        -- set properties of canvas
         midCanvas <- UI.canvas # set textAlign Center
-                               # set UI.width 1400
-                               # set UI.height 700
                                # set textFont "35px sans-serif"
+                               # set UI.style[("align-items", "center"),
+                                              ("display", "flex")]
                               -- # set style [("background-color", "white")]
 
         -- text styling
@@ -30,22 +44,22 @@ boardSuite w =
         pure midCanvas # set UI.textAlign Center
 
         instrText <- string "helpful text"
-        startGameButton <- UI.button # set UI.text "Start game"
+        --startGameButton <- UI.button # set UI.text "Start game"
         --on UI.click startGameButton $ \event ->
         --    do liftIO $ print "sorry, no game implemented"
-        contentGrid <- grid [[ element midCanvas], 
-                             [ element instrText],
-                             [ element startGameButton]]
-                             # set UI.style[("padding", "200px"),
-                                            ("text-align", "center"),
-                                            ("align-items", "center")]
-        getBody w #+ [ element contentGrid
-                      ]          -- add this list of stuff as children to this window
+        initContentGrid <- grid [[ element midCanvas], 
+                                 [ element instrText],
+                                 [ element ezGameButton, element medGameButton, element hardGameButton]]
+                                  # set UI.style[("padding", "200px"),
+                                                 ("text-align", "center"),
+                                                 ("align-items", "center")]
+        
+        getBody w #+ [ element contentGrid]          -- add this list of stuff as children to this window
                      -- # set UI.textAlign Center
                       
 
        -- minesweeperStateRef <- liftIO $ newIORef
-        drawBoard midCanvas (0,0) example
+        gameLoop
         return ()
 
 drawBoard :: UI.Canvas -> Point -> Board -> UI ()
@@ -80,7 +94,7 @@ drawBox canvas p@(x,y) "" =
     do canvas # set' UI.fillStyle (UI.htmlColor "teal")
        canvas # UI.fillRect p 50 50
 drawBox canvas p@(x,y) str =
-    do canvas # set' UI.fillStyle (UI.htmlColor "yellow")
+    do canvas # set' UI.fillStyle (UI.htmlColor "#A9DDD6")
        canvas # UI.fillRect p 50 50
        canvas # set' UI.fillStyle (UI.htmlColor "black")
        canvas # UI.strokeText str (x+25, y+25)

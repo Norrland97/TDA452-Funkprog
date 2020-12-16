@@ -29,7 +29,7 @@ newBoard :: Pos -> Minesweeper -> Minesweeper
 newBoard sz state = (MS {size = sz, board = hideAll (makeBoard (randG state) mines sz), views = [], flagFlag = False, randG = (randG state)})
     where mines | sz == (8,8) = bombRateEasy
                 | sz == (16,16) = bombRateMed
-                | sz == (30,16) = bombRateHard
+                | sz == (22,22) = bombRateHard
 
 
 
@@ -150,6 +150,7 @@ boardSuite w =
       --  drawBoard midCanvas (0,0) (board gameState)          -- draw game
         getBody w #+ [ element contentGrid]         -- add this list of stuff as children to this window
 
+{-}
         on UI.contextmenu midCanvas $ \coord ->
             do
                element instrText # set UI.text "TJOHO"
@@ -157,7 +158,7 @@ boardSuite w =
                -- liftIO $ modifyIORef hmStateRef (updateHangman c)
                curGameState <- liftIO( readIORef gameStateRef)
                drawBoard midCanvas (0,0) ( (board curGameState))
-
+-}
         -- init canvas click action handler
         on UI.mousedown midCanvas $ \coord ->
             do curGameState <- liftIO( readIORef gameStateRef)
@@ -208,6 +209,9 @@ boardSuite w =
                                     # set UI.style[--("padding", "200px"),
                                                    ("text-align", "center"),
                                                    ("align-items", "center")]
+
+               curGameState <- liftIO( readIORef gameStateRef)
+               drawBoard midCanvas (0,0) ( (board curGameState))
                getBody w #+ [ element contentGrid] 
             --   element midCanvas # set UI.margin-left 500
         on UI.click medGameButton $ \event ->
@@ -222,11 +226,13 @@ boardSuite w =
                                     # set UI.style[--("padding", "200px"),
                                                     ("text-align", "center"),
                                                     ("align-items", "center")]
+               curGameState <- liftIO( readIORef gameStateRef)
+               drawBoard midCanvas (0,0) ( (board curGameState))
                getBody w #+ [ element contentGrid] 
         on UI.click hardGameButton $ \event ->
-            do element midCanvas # set UI.width ((double2Int (tileSize + tileSpaceSize))*30)
-               element midCanvas # set UI.height ((double2Int (tileSize + tileSpaceSize))*16)
-               liftIO $ modifyIORef gameStateRef $ newBoard (30,16)
+            do element midCanvas # set UI.width ((double2Int (tileSize + tileSpaceSize))*22)
+               element midCanvas # set UI.height ((double2Int (tileSize + tileSpaceSize))*22)
+               liftIO $ modifyIORef gameStateRef $ newBoard (22,22)
                 --midCanvas <- setBoardSize 1800 960
                 -- create new game State
                --drawBoard midCanvas (0,0) example'          -- draw game
@@ -235,13 +241,18 @@ boardSuite w =
        --            do gameState <- liftIO $ updateStateBoardCoord' (gameState) (doubleToCoord coord)
         --              drawBoard midCanvas (0,0) (board gameState)
                        --return ()
-               contentGrid <- grid [[ element midCanvas], 
+               newContentGrid <- grid [[ element midCanvas], 
                                     [ element instrText],
                                     [ element flagButton]]
                                     # set UI.style[--("padding", "200px"),
                                                     ("text-align", "center"),
                                                     ("align-items", "center")]
-               getBody w #+ [ element contentGrid] 
+               curGameState <- liftIO( readIORef gameStateRef)
+               drawBoard midCanvas (0,0) ( (board curGameState))
+               element contentGrid # set UI.style[("position", "absolute"),
+                                                  ("left", "-3000")]
+              -- getBody w # contentGrid
+               getBody w #+ [ element newContentGrid] 
                 
 
 

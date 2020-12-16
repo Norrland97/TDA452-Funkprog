@@ -219,6 +219,7 @@ revealOneSpace b (col, row) = b !!= (row, newRow)
 
 --Reveals multiple spaces and returns the result as a board
 revealSeveralSpace :: Board -> [Pos] -> Board
+revealSeveralSpace b []     = b
 revealSeveralSpace b (p:[]) = revealOneSpace b p
 revealSeveralSpace b (p:ps) = revealSeveralSpace new ps
     where new = revealOneSpace b p

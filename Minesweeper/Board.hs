@@ -2,6 +2,7 @@ module Board where
 import System.Random
 import Data.List
 import Data.Function
+import Test.QuickCheck
 
 -- | Change to a Space being an iten and having a state, hidden showing or flagged
 data Item  = Bomb | Numeric Integer | Blank
@@ -11,9 +12,10 @@ data State = Hidden | Showing | Flagged
     deriving (Eq, Show)
 
 data Space = Space {item :: Item, state :: State}
-    deriving (Eq, Show)
+    deriving (Show)
 
-
+instance Eq Space where
+    a == b = (item a == item b) && (state a == state b)
 
 type Row = [Space]
 
@@ -81,11 +83,13 @@ emptyBoard (x,y) = replicate y (replicate x (Space Blank Showing))
 -----------------------------Logic for creating and setting up boards-------------------
 -- creates a board fron given parameters
 makeBoard :: StdGen -> Int -> (Int, Int) -> Board
-makeBoard g bombAmount size = placeBombs g bombAmount (emptyBoard size)
+makeBoard g bombAmount size | isMinesweeper newB = newB
+                            | otherwise = makeBoard (snd (randomR(0,7000) g)) bombAmount size
+    where newB = placeBombs g bombAmount (emptyBoard size)
 
 -- places bombs with a given stdgen and nr
 placeBombs :: StdGen -> Int -> Board -> Board
-placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Space{item=Bomb, state=Hidden} (sortBy ((on compare snd) <> (on compare fst)) boomCord))  -- this is where x and y mixup might cause problems
+placeBombs g bombAmount b = calcNeighbourScore boomCord (setBoard b Space{item=Bomb, state=Hidden} (sortBy ((compare `on` snd) <> (on compare fst)) boomCord))  -- this is where x and y mixup might cause problems
     where boomCord = calcBombCoord g bombAmount (length (head b) ,length b)
 -- | comparator here is dodgelord no 1 but fuck it i really don't wanna fix it
 
@@ -210,31 +214,25 @@ open' _ p _                      = [p] -- otherwise is num or Bomb, in that case
 revealSpace :: Board -> (Int, Int) -> Space
 revealSpace b (col,row) = Space (item ((b !! row) !! col)) Showing
 
--- reveals a space of a given borad
-revealOneSpace :: Board -> Pos -> Board
-revealOneSpace b@(r:rs) (x,y) | x < 0 || y < 0 = b -- guards to return unchanged Board if index too large or small
-                              | x > length b || y > length r = b
-revealOneSpace b (col, row) = b !!= (row, newRow)
-    where newRow = (b !! row) !!= (col, revealSpace b (col,row))
-
 --Reveals multiple spaces and returns the result as a board
 revealSeveralSpace :: Board -> [Pos] -> Board
 revealSeveralSpace b []     = b
-revealSeveralSpace b (p:[]) = revealOneSpace b p
+revealSeveralSpace b (p:[]) = changeOneSpace b p revealSpace
 revealSeveralSpace b (p:ps) = revealSeveralSpace new ps
-    where new = revealOneSpace b p
+    where new = changeOneSpace b p revealSpace
 
---Flags a given space if it's not allread flaggen, otherwise removes flag
+--changes a given space if it's not allread flaggen, otherwise removes flag
 flagSpace :: Board -> Pos -> Space
 flagSpace b (col,row) | flag = Space (item ((b !! row) !! col)) Hidden
                       | otherwise = Space (item ((b !! row) !! col)) Flagged
         where flag = state ((b!!row)!!col) == Flagged
 
-flagOneSpace :: Board -> Pos -> Board
-flagOneSpace b@(r:rs) (x,y) | x < 0 || y < 0 = b -- guards to return unchanged Board if index too large or small
-                            | x > length b || y > length r = b
-flagOneSpace b (col, row) = b !!= (row, newRow)
-    where newRow = (b !! row) !!= (col, flagSpace b (col,row))
+--changes a spece to be flagged or revealed in case it is not allready
+changeOneSpace :: Board -> Pos -> (Board -> Pos -> Space) -> Board
+changeOneSpace b@(r:rs) (x,y) f | x < 0 || y < 0 = b -- guards to return unchanged Board if index too large or small
+                                | x > length b || y > length r = b
+changeOneSpace b (col, row)  f = b !!= (row, newRow)
+    where newRow = (b !! row) !!= (col, f b (col,row))
 ---------------------------------------------------------
 -----------a 'nice to have' operator
 -- replaces the index of a list with a given element
@@ -265,4 +263,65 @@ showSpace Space{state = Flagged}  = "F"
 showSpace Space{item = Blank}     = "_"
 showSpace Space{item = Numeric i} = show i
 showSpace Space{item = Bomb}      = "*"
------------------------------------
+----------------------------------------
+------------- tests and QuickCheck -----
+
+
+-- data type invariant for Board
+isMinesweeper :: Board -> Bool
+isMinesweeper b = and (map (correctNeighbours b) ps)
+    where   
+        ps = [(x,y) | x <- [0..(length (head b)) - 2], y <- [0..(length b) - 2]]
+
+
+-- checks the neighbours of a number to see if they are correct
+-- if input Pos represent Space other than a Numeric function returns True
+correctNeighbours :: Board -> Pos -> Bool
+correctNeighbours b p | numSpace == 0 = True
+                      | otherwise = numSpace == toInteger (length listIfBomb)
+    where findSpace :: Space -> Integer
+          findSpace Space{item = Numeric i} = i
+          findSpace _ = 0
+          numSpace :: Integer
+          numSpace = findSpace (revealSpace b p)
+          listIfBomb = [bP | bP <- getAdjacent b p, item (revealSpace b bP) == Bomb]
+
+correctMove' :: Board -> Pos -> Bool
+correctMove' b p@(r,s) = state ((open b p) !! s !! r) == Showing
+
+{-}
+correctMove :: Board -> Pos -> Bool
+correctMove b p@(r,s) | item space == Blank = open' b p == withSurr
+                      | otherwise           = open' b p == (b !!= (r, ((b !! r) !!= (s, (space)))))
+    where space                   = revealSpace b p
+          changePos pos@(row, sp) = open b pos == (b !!= (row, ((b !! row) !!= (sp, (space)))))
+          recurseSpaceCheck posi  = [(recurseSpaceCheck x)| x <- getAdjacent b posi, item (revealSpace b x) == Blank]
+          withSurr                = nub ( concat [getAdjacent b a | a <- recurseSpaceCheck p])
+-}
+
+--test properties for producing a minesweeper
+prop_minesweeper :: Int -> Bool
+prop_minesweeper i = isMinesweeper (makeTestBoard i)
+
+-- creates a test board with a given int as the random generator
+makeTestBoard :: Int -> Board
+makeTestBoard i = makeBoard (mkStdGen i) bombRateMed boardSizeMed
+
+--test properties for updating minefields
+prop_minesweeper_move :: Int -> Pos -> Bool
+prop_minesweeper_move i (x,y) = correctMove' (makeTestBoard i) p
+    where p = ((abs x) `mod` 15, (abs y) `mod` 15)
+
+
+
+-- 
+prop_flagging :: Board -> Bool
+prop_flagging = undefined
+
+
+{-
+Define the data type invariant for Minefield
+write and test properties for key functions that produce and update minefields: that they satisfy the invariant.
+remove the cut-and-paste code by generalising the similar-looking functions.
+-}
+
